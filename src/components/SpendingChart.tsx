@@ -1,8 +1,43 @@
+import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { monthlyData } from '@/data/mockData';
+import { Transaction } from '@/types/budget';
+import { format, subMonths, parseISO, startOfMonth } from 'date-fns';
 
-export function SpendingChart() {
+interface SpendingChartProps {
+  transactions: Transaction[];
+}
+
+export function SpendingChart({ transactions }: SpendingChartProps) {
+  const monthlyData = useMemo(() => {
+    // Generate last 6 months
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const date = subMonths(new Date(), i);
+      months.push({
+        month: format(date, 'MMM'),
+        monthKey: format(startOfMonth(date), 'yyyy-MM'),
+        income: 0,
+        expenses: 0,
+      });
+    }
+
+    // Aggregate transactions by month
+    transactions.forEach((t) => {
+      const transactionMonth = format(parseISO(t.date), 'yyyy-MM');
+      const monthData = months.find((m) => m.monthKey === transactionMonth);
+      if (monthData) {
+        if (t.type === 'income') {
+          monthData.income += t.amount;
+        } else {
+          monthData.expenses += t.amount;
+        }
+      }
+    });
+
+    return months;
+  }, [transactions]);
+
   return (
     <Card className="gradient-card border-border/50 p-6 shadow-card animate-slide-up" style={{ animationDelay: '0.3s' }}>
       <div className="flex items-center justify-between mb-6">
@@ -42,7 +77,7 @@ export function SpendingChart() {
               axisLine={false}
               tickLine={false}
               tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }}
-              tickFormatter={(value) => `$${value / 1000}k`}
+              tickFormatter={(value) => value >= 1000 ? `$${value / 1000}k` : `$${value}`}
             />
             <Tooltip
               contentStyle={{

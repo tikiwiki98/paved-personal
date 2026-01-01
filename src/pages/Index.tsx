@@ -14,8 +14,8 @@ import { Button } from '@/components/ui/button';
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
-  const { transactions, isLoading: transactionsLoading, addTransaction } = useTransactions();
-  const { categories, isLoading: categoriesLoading } = useCategories(transactions);
+  const { transactions, isLoading: transactionsLoading, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
+  const { categories, isLoading: categoriesLoading, addCategory, updateCategory, deleteCategory } = useCategories(transactions);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -69,7 +69,7 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <AddTransactionModal onAddTransaction={handleAddTransaction} />
+              <AddTransactionModal onAddTransaction={handleAddTransaction} categories={categories} />
               <Button
                 variant="outline"
                 size="icon"
@@ -93,13 +93,23 @@ const Index = () => {
               totalIncome={summary.totalIncome}
               totalExpenses={summary.totalExpenses}
             />
-            <SpendingChart />
-            <TransactionList transactions={transactions} />
+            <SpendingChart transactions={transactions} />
+            <TransactionList 
+              transactions={transactions} 
+              categories={categories}
+              onUpdateTransaction={updateTransaction}
+              onDeleteTransaction={deleteTransaction}
+            />
           </div>
 
           {/* Right Column - Categories */}
           <div className="space-y-6">
-            <BudgetCategories categories={categories} />
+            <BudgetCategories 
+              categories={categories} 
+              onAddCategory={addCategory}
+              onUpdateCategory={updateCategory}
+              onDeleteCategory={deleteCategory}
+            />
           </div>
         </div>
       </main>

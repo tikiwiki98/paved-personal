@@ -69,6 +69,41 @@ export function useCategories(transactions: { type: string; category: string; am
     return { ...cat, spent };
   });
 
+  const addCategory = useMutation({
+    mutationFn: async (category: Omit<Category, 'id' | 'spent'>) => {
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data, error } = await supabase
+        .from('categories')
+        .insert({
+          user_id: user.id,
+          name: category.name,
+          icon: category.icon,
+          budget: category.budget,
+          color: category.color,
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', user?.id] });
+      toast({
+        title: 'Category added',
+        description: 'Your new category has been created.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   const updateCategory = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Category> & { id: string }) => {
       const { error } = await supabase
@@ -82,7 +117,32 @@ export function useCategories(transactions: { type: string; category: string; am
       queryClient.invalidateQueries({ queryKey: ['categories', user?.id] });
       toast({
         title: 'Category updated',
-        description: 'Your budget has been updated.',
+        description: 'Your category has been updated.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const deleteCategory = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', user?.id] });
+      toast({
+        title: 'Category deleted',
+        description: 'Your category has been removed.',
       });
     },
     onError: (error) => {
@@ -97,6 +157,8 @@ export function useCategories(transactions: { type: string; category: string; am
   return {
     categories: categoriesWithSpending,
     isLoading,
+    addCategory: addCategory.mutate,
     updateCategory: updateCategory.mutate,
+    deleteCategory: deleteCategory.mutate,
   };
 }

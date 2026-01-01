@@ -70,6 +70,31 @@ export function useTransactions() {
     },
   });
 
+  const updateTransaction = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Transaction> & { id: string }) => {
+      const { error } = await supabase
+        .from('transactions')
+        .update(updates)
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions', user?.id] });
+      toast({
+        title: 'Transaction updated',
+        description: 'Your transaction has been updated.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   const deleteTransaction = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -99,6 +124,7 @@ export function useTransactions() {
     transactions,
     isLoading,
     addTransaction: addTransaction.mutate,
+    updateTransaction: updateTransaction.mutate,
     deleteTransaction: deleteTransaction.mutate,
     isAdding: addTransaction.isPending,
   };
