@@ -1,16 +1,27 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BalanceCard } from '@/components/BalanceCard';
 import { TransactionList } from '@/components/TransactionList';
 import { BudgetCategories } from '@/components/BudgetCategories';
 import { SpendingChart } from '@/components/SpendingChart';
 import { AddTransactionModal } from '@/components/AddTransactionModal';
-import { mockTransactions, mockCategories } from '@/data/mockData';
-import { Transaction } from '@/types/budget';
-import { Wallet } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useCategories } from '@/hooks/useCategories';
+import { Wallet, LogOut, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
-  const [categories, setCategories] = useState(mockCategories);
+  const { user, loading: authLoading, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { transactions, isLoading: transactionsLoading, addTransaction } = useTransactions();
+  const { categories, isLoading: categoriesLoading } = useCategories(transactions);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
   const summary = useMemo(() => {
     const totalIncome = transactions
@@ -26,24 +37,21 @@ const Index = () => {
     };
   }, [transactions]);
 
-  const handleAddTransaction = (newTransaction: Omit<Transaction, 'id'>) => {
-    const transaction: Transaction = {
-      ...newTransaction,
-      id: Date.now().toString(),
-    };
-    setTransactions((prev) => [transaction, ...prev]);
-
-    // Update category spending if expense
-    if (transaction.type === 'expense') {
-      setCategories((prev) =>
-        prev.map((cat) =>
-          cat.name === transaction.category
-            ? { ...cat, spent: cat.spent + transaction.amount }
-            : cat
-        )
-      );
-    }
+  const handleAddTransaction = (newTransaction: Omit<typeof transactions[0], 'id'>) => {
+    addTransaction(newTransaction);
   };
+
+  if (authLoading || transactionsLoading || categoriesLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -57,10 +65,20 @@ const Index = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-foreground">BudgetFlow</h1>
-                <p className="text-xs text-muted-foreground">Personal Finance Tracker</p>
+                <p className="text-xs text-muted-foreground">{user.email}</p>
               </div>
             </div>
-            <AddTransactionModal onAddTransaction={handleAddTransaction} />
+            <div className="flex items-center gap-3">
+              <AddTransactionModal onAddTransaction={handleAddTransaction} />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={signOut}
+                className="border-border/50"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
