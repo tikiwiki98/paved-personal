@@ -5,18 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { Transaction } from '@/types/budget';
+import { Transaction, Category } from '@/types/budget';
 
 interface AddTransactionModalProps {
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  categories: Category[];
 }
 
-const categories = {
-  income: ['Salary', 'Freelance', 'Investments', 'Other Income'],
-  expense: ['Rent', 'Groceries', 'Entertainment', 'Utilities', 'Dining', 'Shopping', 'Transport', 'Healthcare'],
-};
+const incomeCategories = ['Salary', 'Freelance', 'Investments', 'Other Income'];
 
-export function AddTransactionModal({ onAddTransaction }: AddTransactionModalProps) {
+export function AddTransactionModal({ onAddTransaction, categories }: AddTransactionModalProps) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [amount, setAmount] = useState('');
@@ -40,6 +38,10 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
     setDescription('');
     setOpen(false);
   };
+
+  const categoryOptions = type === 'income' 
+    ? incomeCategories 
+    : categories.map((c) => c.name);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -114,7 +116,7 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border">
-                {categories[type].map((cat) => (
+                {categoryOptions.map((cat) => (
                   <SelectItem key={cat} value={cat} className="focus:bg-secondary">
                     {cat}
                   </SelectItem>
