@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card } from '@/components/ui/card';
 import { Transaction } from '@/types/budget';
 
@@ -7,16 +7,8 @@ interface PaymentTypeChartProps {
   transactions: Transaction[];
 }
 
-const PAYMENT_COLORS: Record<string, string> = {
-  'credit_card': 'hsl(217, 91%, 60%)',
-  'debit_card': 'hsl(280, 65%, 60%)',
-  'cash': 'hsl(160, 84%, 39%)',
-  'venmo': 'hsl(199, 89%, 48%)',
-  'paypal': 'hsl(210, 78%, 55%)',
-  'crypto': 'hsl(38, 92%, 50%)',
-  'bank_transfer': 'hsl(180, 70%, 45%)',
-  'other': 'hsl(215, 20%, 65%)',
-};
+// Consistent blue-toned color for all bars (matching Home page)
+const BAR_COLOR = 'hsl(195, 80%, 50%)';
 
 const PAYMENT_LABELS: Record<string, string> = {
   'credit_card': 'Credit Card',
@@ -26,6 +18,8 @@ const PAYMENT_LABELS: Record<string, string> = {
   'paypal': 'PayPal',
   'crypto': 'Crypto',
   'bank_transfer': 'Bank Transfer',
+  'zelle': 'Zelle',
+  'check': 'Check',
   'other': 'Other',
 };
 
@@ -43,7 +37,6 @@ export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
       .map(([type, value]) => ({
         name: PAYMENT_LABELS[type] || type,
         value,
-        color: PAYMENT_COLORS[type] || 'hsl(215, 20%, 65%)',
       }))
       .sort((a, b) => b.value - a.value);
   }, [transactions]);
@@ -69,7 +62,7 @@ export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
               dataKey="name"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 11 }}
+              tick={{ fill: 'hsl(215, 15%, 55%)', fontSize: 11 }}
               angle={-30}
               textAnchor="end"
               height={50}
@@ -77,24 +70,32 @@ export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }}
-              tickFormatter={(value) => `$${value >= 1000 ? `${value / 1000}k` : value}`}
+              tick={{ fill: 'hsl(215, 15%, 55%)', fontSize: 12 }}
+              tickFormatter={(value) => {
+                if (value === 0) return '$0';
+                if (value >= 1000) return `$${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k`;
+                return `$${Math.round(value / 100) * 100}`;
+              }}
+              tickCount={5}
+              allowDecimals={false}
             />
             <Tooltip
+              cursor={false}
               contentStyle={{
-                backgroundColor: 'hsl(222, 47%, 14%)',
-                border: '1px solid hsl(222, 30%, 22%)',
+                backgroundColor: 'hsl(220, 28%, 12%)',
+                border: '1px solid hsl(220, 20%, 18%)',
                 borderRadius: '12px',
                 padding: '12px',
               }}
-              labelStyle={{ color: 'hsl(210, 40%, 98%)' }}
+              labelStyle={{ color: 'hsl(210, 20%, 96%)' }}
               formatter={(value: number) => [`$${value.toLocaleString()}`, 'Amount']}
             />
-            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Bar>
+            <Bar 
+              dataKey="value" 
+              fill={BAR_COLOR}
+              radius={[4, 4, 0, 0]}
+              activeBar={false}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>

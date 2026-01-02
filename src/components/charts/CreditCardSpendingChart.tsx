@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card } from '@/components/ui/card';
 import { Transaction, CreditCard } from '@/types/budget';
 import { Link } from 'react-router-dom';
@@ -11,13 +11,8 @@ interface CreditCardSpendingChartProps {
   creditCards: CreditCard[];
 }
 
-const CARD_COLORS = [
-  'hsl(195, 80%, 50%)',
-  'hsl(195, 80%, 40%)',
-  'hsl(195, 70%, 55%)',
-  'hsl(195, 60%, 45%)',
-  'hsl(195, 90%, 60%)',
-];
+// Consistent blue-toned color for all bars (matching Home page)
+const BAR_COLOR = 'hsl(195, 80%, 50%)';
 
 export function CreditCardSpendingChart({
   transactions,
@@ -35,7 +30,7 @@ export function CreditCardSpendingChart({
 
     // Map to chart data with matched credit cards
     return Object.entries(expensesByCard)
-      .map(([name, value], index) => {
+      .map(([name, value]) => {
         const matchedCard = creditCards.find(
           (c) =>
             c.card_name.toLowerCase() === name.toLowerCase() ||
@@ -45,7 +40,6 @@ export function CreditCardSpendingChart({
         return {
           name: matchedCard?.card_type || name,
           value,
-          color: CARD_COLORS[index % CARD_COLORS.length],
           cardId: matchedCard?.id,
         };
       })
@@ -96,7 +90,7 @@ export function CreditCardSpendingChart({
               dataKey="name"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 11 }}
+              tick={{ fill: 'hsl(215, 15%, 55%)', fontSize: 11 }}
               angle={-30}
               textAnchor="end"
               height={50}
@@ -104,24 +98,32 @@ export function CreditCardSpendingChart({
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }}
-              tickFormatter={(value) => `$${value >= 1000 ? `${value / 1000}k` : value}`}
+              tick={{ fill: 'hsl(215, 15%, 55%)', fontSize: 12 }}
+              tickFormatter={(value) => {
+                if (value === 0) return '$0';
+                if (value >= 1000) return `$${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k`;
+                return `$${Math.round(value / 100) * 100}`;
+              }}
+              tickCount={5}
+              allowDecimals={false}
             />
             <Tooltip
+              cursor={false}
               contentStyle={{
-                backgroundColor: 'hsl(222, 47%, 14%)',
-                border: '1px solid hsl(222, 30%, 22%)',
+                backgroundColor: 'hsl(220, 28%, 12%)',
+                border: '1px solid hsl(220, 20%, 18%)',
                 borderRadius: '12px',
                 padding: '12px',
               }}
-              labelStyle={{ color: 'hsl(210, 40%, 98%)' }}
+              labelStyle={{ color: 'hsl(210, 20%, 96%)' }}
               formatter={(value: number) => [`$${value.toLocaleString()}`, 'Amount']}
             />
-            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Bar>
+            <Bar 
+              dataKey="value" 
+              fill={BAR_COLOR}
+              radius={[4, 4, 0, 0]}
+              activeBar={false}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>

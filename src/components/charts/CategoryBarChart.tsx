@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card } from '@/components/ui/card';
 import { Transaction, Category } from '@/types/budget';
 
@@ -8,16 +8,8 @@ interface CategoryBarChartProps {
   categories: Category[];
 }
 
-const COLORS = [
-  'hsl(160, 84%, 39%)',
-  'hsl(217, 91%, 60%)',
-  'hsl(280, 65%, 60%)',
-  'hsl(38, 92%, 50%)',
-  'hsl(0, 72%, 51%)',
-  'hsl(180, 70%, 45%)',
-  'hsl(330, 70%, 55%)',
-  'hsl(120, 60%, 45%)',
-];
+// Consistent blue-toned color for all bars (matching Home page)
+const BAR_COLOR = 'hsl(195, 80%, 50%)';
 
 export function CategoryBarChart({ transactions, categories }: CategoryBarChartProps) {
   const data = useMemo(() => {
@@ -29,10 +21,9 @@ export function CategoryBarChart({ transactions, categories }: CategoryBarChartP
       }, {} as Record<string, number>);
 
     return Object.entries(expensesByCategory)
-      .map(([name, value], index) => ({
+      .map(([name, value]) => ({
         name,
         value,
-        color: categories.find((c) => c.name === name)?.color || COLORS[index % COLORS.length],
       }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 8); // Top 8 categories
@@ -54,13 +45,20 @@ export function CategoryBarChart({ transactions, categories }: CategoryBarChartP
       <h3 className="text-lg font-semibold text-foreground mb-4">Top Categories</h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 60, bottom: 5 }}>
+          <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 70, bottom: 5 }}>
             <XAxis
               type="number"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }}
-              tickFormatter={(value) => `$${value >= 1000 ? `${value / 1000}k` : value}`}
+              tick={{ fill: 'hsl(215, 15%, 55%)', fontSize: 12 }}
+              tickFormatter={(value) => {
+                if (value === 0) return '$0';
+                if (value >= 1000) return `$${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k`;
+                return `$${Math.round(value / 100) * 100}`;
+              }}
+              domain={[0, 'auto']}
+              tickCount={5}
+              allowDecimals={false}
             />
             <YAxis
               type="category"
@@ -68,23 +66,26 @@ export function CategoryBarChart({ transactions, categories }: CategoryBarChartP
               axisLine={false}
               tickLine={false}
               tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }}
-              width={60}
+              width={70}
             />
             <Tooltip
+              cursor={false}
               contentStyle={{
-                backgroundColor: 'hsl(222, 47%, 14%)',
-                border: '1px solid hsl(222, 30%, 22%)',
+                backgroundColor: 'hsl(220, 28%, 12%)',
+                border: '1px solid hsl(220, 20%, 18%)',
                 borderRadius: '12px',
                 padding: '12px',
               }}
-              labelStyle={{ color: 'hsl(210, 40%, 98%)' }}
+              labelStyle={{ color: 'hsl(210, 20%, 96%)' }}
               formatter={(value: number) => [`$${value.toLocaleString()}`, 'Amount']}
             />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Bar>
+            <Bar 
+              dataKey="value" 
+              fill={BAR_COLOR}
+              radius={[0, 4, 4, 0]} 
+              barSize={20}
+              activeBar={false}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
