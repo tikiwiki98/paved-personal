@@ -76,7 +76,7 @@ export function TransactionList({
                 </div>
                 <div className="text-right">
                   <p
-                    className={`font-bold font-mono ${
+                    className={`font-bold ${
                       transaction.type === 'income' ? 'text-income' : 'text-expense'
                     }`}
                   >

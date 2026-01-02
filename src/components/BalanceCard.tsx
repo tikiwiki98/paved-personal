@@ -19,7 +19,7 @@ export function BalanceCard({ totalBalance, totalIncome, totalExpenses }: Balanc
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Total Balance</p>
-            <h2 className="text-3xl font-bold text-foreground font-mono">
+            <h2 className="text-3xl font-bold text-foreground">
               ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </h2>
           </div>
@@ -38,7 +38,7 @@ export function BalanceCard({ totalBalance, totalIncome, totalExpenses }: Balanc
             </div>
             <span className="text-sm text-muted-foreground">Income</span>
           </div>
-          <p className="text-xl font-bold text-income font-mono">
+          <p className="text-xl font-bold text-income">
             +${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
         </div>
@@ -50,7 +50,7 @@ export function BalanceCard({ totalBalance, totalIncome, totalExpenses }: Balanc
             </div>
             <span className="text-sm text-muted-foreground">Expenses</span>
           </div>
-          <p className="text-xl font-bold text-expense font-mono">
+          <p className="text-xl font-bold text-expense">
             -${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
         </div>
