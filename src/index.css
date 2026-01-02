@@ -6,80 +6,100 @@
 
 @layer base {
   :root {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    /* Deep navy base - trustworthy and stable */
+    --background: 220 30% 8%;
+    --foreground: 210 20% 96%;
 
-    --card: 222 47% 14%;
-    --card-foreground: 210 40% 98%;
+    /* Elevated surfaces with subtle warmth */
+    --card: 220 28% 12%;
+    --card-foreground: 210 20% 96%;
 
-    --popover: 222 47% 14%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 28% 14%;
+    --popover-foreground: 210 20% 96%;
 
-    --primary: 160 84% 39%;
-    --primary-foreground: 222 47% 11%;
+    /* Calming teal primary - growth, savings, trust */
+    --primary: 175 70% 42%;
+    --primary-foreground: 220 30% 8%;
 
-    --secondary: 222 47% 18%;
-    --secondary-foreground: 210 40% 98%;
+    /* Subtle secondary for less emphasis */
+    --secondary: 220 25% 16%;
+    --secondary-foreground: 210 20% 90%;
 
-    --muted: 222 30% 20%;
-    --muted-foreground: 215 20% 65%;
+    /* Muted tones for disabled/subtle text */
+    --muted: 220 20% 18%;
+    --muted-foreground: 215 15% 55%;
 
-    --accent: 160 84% 39%;
-    --accent-foreground: 222 47% 11%;
+    /* Accent for highlights and toggles */
+    --accent: 195 80% 50%;
+    --accent-foreground: 220 30% 8%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+    /* Clear destructive for warnings - not alarming */
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 210 20% 96%;
 
-    --success: 160 84% 39%;
-    --success-foreground: 222 47% 11%;
+    /* Success aligned with income/savings */
+    --success: 160 60% 45%;
+    --success-foreground: 220 30% 8%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 222 47% 11%;
+    /* Warm amber for warnings - attention without alarm */
+    --warning: 40 90% 50%;
+    --warning-foreground: 220 30% 8%;
 
-    --border: 222 30% 22%;
-    --input: 222 30% 22%;
-    --ring: 160 84% 39%;
+    /* Borders and inputs - subtle definition */
+    --border: 220 20% 18%;
+    --input: 220 22% 16%;
+    --ring: 175 70% 42%;
 
     --radius: 0.75rem;
 
-    /* Custom tokens */
-    --income: 160 84% 39%;
-    --expense: 0 72% 51%;
-    --gradient-card: linear-gradient(135deg, hsl(222 47% 16%), hsl(222 47% 12%));
-    --gradient-primary: linear-gradient(135deg, hsl(160 84% 39%), hsl(160 84% 30%));
-    --shadow-glow: 0 0 40px hsl(160 84% 39% / 0.15);
-    --shadow-card: 0 4px 24px hsl(222 47% 5% / 0.4);
+    /* Finance-specific tokens */
+    --income: 160 60% 45%;
+    --expense: 0 55% 50%;
+    
+    /* Refined gradients and shadows */
+    --gradient-card: linear-gradient(135deg, hsl(220 28% 14%), hsl(220 28% 10%));
+    --gradient-primary: linear-gradient(135deg, hsl(175 70% 42%), hsl(175 70% 34%));
+    --shadow-glow: 0 0 40px hsl(175 70% 42% / 0.12);
+    --shadow-card: 0 4px 24px hsl(220 30% 4% / 0.5);
 
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 160 84% 39%;
-    --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent: 222 47% 18%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 30% 22%;
-    --sidebar-ring: 160 84% 39%;
+    /* Sidebar - consistent with main theme */
+    --sidebar-background: 220 30% 6%;
+    --sidebar-foreground: 210 20% 96%;
+    --sidebar-primary: 175 70% 42%;
+    --sidebar-primary-foreground: 220 30% 8%;
+    --sidebar-accent: 220 25% 14%;
+    --sidebar-accent-foreground: 210 20% 90%;
+    --sidebar-border: 220 20% 15%;
+    --sidebar-ring: 175 70% 42%;
+
+    /* Chart colors - clear distinction */
+    --chart-1: 175 70% 42%;
+    --chart-2: 195 80% 50%;
+    --chart-3: 160 60% 45%;
+    --chart-4: 40 90% 50%;
+    --chart-5: 280 60% 55%;
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 14%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 14%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 160 84% 39%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 222 47% 18%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 222 30% 20%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 160 84% 39%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 222 30% 22%;
-    --input: 222 30% 22%;
-    --ring: 160 84% 39%;
+    --background: 220 30% 8%;
+    --foreground: 210 20% 96%;
+    --card: 220 28% 12%;
+    --card-foreground: 210 20% 96%;
+    --popover: 220 28% 14%;
+    --popover-foreground: 210 20% 96%;
+    --primary: 175 70% 42%;
+    --primary-foreground: 220 30% 8%;
+    --secondary: 220 25% 16%;
+    --secondary-foreground: 210 20% 90%;
+    --muted: 220 20% 18%;
+    --muted-foreground: 215 15% 55%;
+    --accent: 195 80% 50%;
+    --accent-foreground: 220 30% 8%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 210 20% 96%;
+    --border: 220 20% 18%;
+    --input: 220 22% 16%;
+    --ring: 175 70% 42%;
   }
 }
 
