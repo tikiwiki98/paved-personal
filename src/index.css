@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
-
 @layer base {
   :root {
     /* Deep navy base - trustworthy and stable */
@@ -111,10 +109,6 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Figtree', sans-serif;
-  }
-
-  .font-mono {
-    font-family: 'JetBrains Mono', monospace;
   }
 }
 

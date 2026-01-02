@@ -193,7 +193,7 @@ export function EditTransactionModal({
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="pl-8 text-lg font-mono bg-secondary border-border"
+                  className="pl-8 text-lg bg-secondary border-border"
                 />
               </div>
             </div>
