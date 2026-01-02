@@ -1,10 +1,12 @@
 import { cn } from '@/lib/utils';
+import { TimeFrameRange } from '@/contexts/TimeFrameContext';
 
-export type SummaryRange = '1m' | '3m' | '6m' | '1y' | 'mtd' | 'ytd';
+// Re-export the type for backward compatibility
+export type SummaryRange = TimeFrameRange;
 
 interface SummaryRangeSelectorProps {
-  value: SummaryRange;
-  onChange: (range: SummaryRange) => void;
+  value: TimeFrameRange;
+  onChange: (range: TimeFrameRange) => void;
 }
 
 const ranges: { value: SummaryRange; label: string }[] = [

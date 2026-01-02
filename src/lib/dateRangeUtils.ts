@@ -1,8 +1,8 @@
 import { parseISO, subMonths, subYears, startOfMonth, startOfYear, isAfter, isEqual, isBefore, startOfDay } from 'date-fns';
 import { Transaction } from '@/types/budget';
-import { SummaryRange } from '@/components/SummaryRangeSelector';
+import { TimeFrameRange } from '@/contexts/TimeFrameContext';
 
-export function getDateRangeStart(range: SummaryRange): Date {
+export function getDateRangeStart(range: TimeFrameRange): Date {
   const now = new Date();
   
   switch (range) {
@@ -23,7 +23,7 @@ export function getDateRangeStart(range: SummaryRange): Date {
   }
 }
 
-export function filterTransactionsByRange(transactions: Transaction[], range: SummaryRange): Transaction[] {
+export function filterTransactionsByRange(transactions: Transaction[], range: TimeFrameRange): Transaction[] {
   const startDate = getDateRangeStart(range);
   const today = startOfDay(new Date());
   

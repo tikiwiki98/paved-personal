@@ -5,10 +5,11 @@ import { Transaction, Category } from '@/types/budget';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { format, subMonths, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
-import { SummaryRangeSelector, SummaryRange } from '@/components/SummaryRangeSelector';
+import { SummaryRangeSelector } from '@/components/SummaryRangeSelector';
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 import { InsightCard } from '@/components/InsightCard';
 import { useSpendingInsight } from '@/hooks/useInsights';
+import { useTimeFrame } from '@/contexts/TimeFrameContext';
 
 interface SpendingChartProps {
   transactions: Transaction[];
@@ -26,10 +27,9 @@ const HISTORICAL_RANGES = [
 ];
 
 export function SpendingChart({ transactions, categories = [] }: SpendingChartProps) {
+  const { range, setRange } = useTimeFrame();
   const [showHistorical, setShowHistorical] = useState(false);
   const [historicalMonths, setHistoricalMonths] = useState(3);
-  const [range, setRange] = useState<SummaryRange>('mtd');
-  const [hasInteracted, setHasInteracted] = useState(false);
 
   const data = useMemo(() => {
     // Filter transactions by selected range
@@ -87,20 +87,14 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
     return filterTransactionsByRange(transactions, range);
   }, [transactions, range]);
 
-  const { message: insight } = useSpendingInsight(filteredForInsight, showHistorical, hasInteracted);
+  const { message: insight } = useSpendingInsight(filteredForInsight, showHistorical, true);
 
   const rangeLabel = range === 'mtd' ? format(new Date(), 'MMMM') : 
                      range === 'ytd' ? format(new Date(), 'yyyy') :
                      range.toUpperCase();
 
-  const handleRangeChange = (newRange: SummaryRange) => {
-    setRange(newRange);
-    setHasInteracted(true);
-  };
-
   const handleHistoricalToggle = (checked: boolean) => {
     setShowHistorical(checked);
-    setHasInteracted(true);
   };
 
   if (data.length === 0) {
@@ -110,7 +104,7 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
         <div className="h-64 flex items-center justify-center text-muted-foreground">
           No expense data for {rangeLabel}
         </div>
-        <SummaryRangeSelector value={range} onChange={handleRangeChange} />
+        <SummaryRangeSelector value={range} onChange={setRange} />
       </Card>
     );
   }
@@ -230,7 +224,7 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
 
       {insight && <InsightCard message={insight} className="mt-4" />}
 
-      <SummaryRangeSelector value={range} onChange={handleRangeChange} />
+      <SummaryRangeSelector value={range} onChange={setRange} />
     </Card>
   );
 }

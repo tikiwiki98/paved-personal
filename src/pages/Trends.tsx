@@ -1,19 +1,21 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useCreditCards } from '@/hooks/useCreditCards';
+import { useTimeFrame } from '@/contexts/TimeFrameContext';
 import { AppLayout } from '@/components/AppLayout';
 import { CategoryBarChart } from '@/components/charts/CategoryBarChart';
 import { PaymentTypeChart } from '@/components/charts/PaymentTypeChart';
 import { CreditCardSpendingChart } from '@/components/charts/CreditCardSpendingChart';
 import { CardOptimizationInsight } from '@/components/CardOptimizationInsight';
-import { DateRangeSelector, DateRange } from '@/components/charts/DateRangeSelector';
+import { SummaryRangeSelector } from '@/components/SummaryRangeSelector';
 import { InsightCard } from '@/components/InsightCard';
 import { useTrendsInsight } from '@/hooks/useInsights';
+import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 import { Loader2, TrendingUp } from 'lucide-react';
-import { subDays, subMonths, subYears, parseISO, isAfter, isBefore, startOfDay } from 'date-fns';
+import { format } from 'date-fns';
 
 const Trends = () => {
   const { user, loading: authLoading } = useAuth();
@@ -21,9 +23,7 @@ const Trends = () => {
   const { transactions, isLoading: transactionsLoading } = useTransactions();
   const { categories, isLoading: categoriesLoading } = useCategories(transactions);
   const { creditCards, isLoading: cardsLoading } = useCreditCards();
-  const [dateRange, setDateRange] = useState<DateRange>('1m');
-  const [hasInteracted, setHasInteracted] = useState(false);
-  const [interactionType, setInteractionType] = useState<'range' | 'category' | 'payment'>('range');
+  const { range, setRange } = useTimeFrame();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -32,39 +32,8 @@ const Trends = () => {
   }, [user, authLoading, navigate]);
 
   const filteredTransactions = useMemo(() => {
-    const now = new Date();
-    const today = startOfDay(now);
-    let startDate: Date;
-
-    switch (dateRange) {
-      case '1d':
-        startDate = subDays(now, 1);
-        break;
-      case '7d':
-        startDate = subDays(now, 7);
-        break;
-      case '1m':
-        startDate = subMonths(now, 1);
-        break;
-      case '3m':
-        startDate = subMonths(now, 3);
-        break;
-      case '6m':
-        startDate = subMonths(now, 6);
-        break;
-      case '1y':
-        startDate = subYears(now, 1);
-        break;
-      default:
-        startDate = subMonths(now, 1);
-    }
-
-    return transactions.filter((t) => {
-      const transactionDate = startOfDay(parseISO(t.date));
-      return isAfter(transactionDate, startDate) && 
-             (isBefore(transactionDate, today) || transactionDate.getTime() === today.getTime());
-    });
-  }, [transactions, dateRange]);
+    return filterTransactionsByRange(transactions, range);
+  }, [transactions, range]);
 
   const totalExpenses = useMemo(() => {
     return filteredTransactions
@@ -72,13 +41,11 @@ const Trends = () => {
       .reduce((acc, t) => acc + t.amount, 0);
   }, [filteredTransactions]);
 
-  const { message: insight } = useTrendsInsight(filteredTransactions, hasInteracted, interactionType);
+  const { message: insight } = useTrendsInsight(filteredTransactions, true, 'range');
 
-  const handleDateRangeChange = (newRange: DateRange) => {
-    setDateRange(newRange);
-    setHasInteracted(true);
-    setInteractionType('range');
-  };
+  const rangeLabel = range === 'mtd' ? format(new Date(), 'MMMM') : 
+                     range === 'ytd' ? format(new Date(), 'yyyy') :
+                     range.toUpperCase();
 
   if (authLoading || transactionsLoading || categoriesLoading || cardsLoading) {
     return (
@@ -104,11 +71,15 @@ const Trends = () => {
             <div>
               <h1 className="text-xl md:text-2xl font-bold text-foreground">Spending Trends</h1>
               <p className="text-sm text-muted-foreground">
-                ${totalExpenses.toLocaleString()} total expenses
+                ${totalExpenses.toLocaleString()} total expenses ({rangeLabel})
               </p>
             </div>
           </div>
-          <DateRangeSelector value={dateRange} onChange={handleDateRangeChange} />
+        </div>
+
+        {/* Time Frame Selector - synced with Home page */}
+        <div className="mb-6">
+          <SummaryRangeSelector value={range} onChange={setRange} />
         </div>
 
         {/* Insights */}
