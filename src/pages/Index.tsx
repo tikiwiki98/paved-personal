@@ -2,7 +2,7 @@ import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BalanceCard } from '@/components/BalanceCard';
 import { TransactionList } from '@/components/TransactionList';
-import { BudgetCategories } from '@/components/BudgetCategories';
+
 import { SpendingChart } from '@/components/SpendingChart';
 import { AddTransactionModal } from '@/components/AddTransactionModal';
 import { AppLayout } from '@/components/AppLayout';
@@ -16,7 +16,7 @@ const Index = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { transactions, isLoading: transactionsLoading, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
-  const { categories, isLoading: categoriesLoading, addCategory, updateCategory, deleteCategory } = useCategories(transactions);
+  const { categories, isLoading: categoriesLoading } = useCategories(transactions);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -74,18 +74,9 @@ const Index = () => {
             />
           </div>
 
-          {/* Right Column - Categories */}
-          <div className="space-y-6">
-            {/* Desktop only: Add Transaction button */}
-            <div className="hidden md:block">
-              <AddTransactionModal onAddTransaction={handleAddTransaction} categories={categories} transactions={transactions} />
-            </div>
-            <BudgetCategories 
-              categories={categories} 
-              onAddCategory={addCategory}
-              onUpdateCategory={updateCategory}
-              onDeleteCategory={deleteCategory}
-            />
+          {/* Right Column - Add Transaction */}
+          <div className="hidden md:block">
+            <AddTransactionModal onAddTransaction={handleAddTransaction} categories={categories} transactions={transactions} />
           </div>
         </div>
       </div>
