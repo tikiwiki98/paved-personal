@@ -10,11 +10,12 @@ import { Transaction, Category } from '@/types/budget';
 interface AddTransactionModalProps {
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   categories: Category[];
+  trigger?: React.ReactNode;
 }
 
 const incomeCategories = ['Salary', 'Freelance', 'Investments', 'Other Income'];
 
-export function AddTransactionModal({ onAddTransaction, categories }: AddTransactionModalProps) {
+export function AddTransactionModal({ onAddTransaction, categories, trigger }: AddTransactionModalProps) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [amount, setAmount] = useState('');
@@ -43,13 +44,17 @@ export function AddTransactionModal({ onAddTransaction, categories }: AddTransac
     ? incomeCategories 
     : categories.map((c) => c.name);
 
+  const defaultTrigger = (
+    <Button size="lg" className="gap-2 shadow-glow">
+      <Plus className="w-5 h-5" />
+      Add Transaction
+    </Button>
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="lg" className="gap-2 shadow-glow">
-          <Plus className="w-5 h-5" />
-          Add Transaction
-        </Button>
+        {trigger || defaultTrigger}
       </DialogTrigger>
       <DialogContent className="bg-card border-border sm:max-w-md">
         <DialogHeader>
