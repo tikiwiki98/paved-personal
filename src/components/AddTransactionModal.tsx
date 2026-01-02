@@ -3,9 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { Transaction, Category } from '@/types/budget';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { Check, ChevronsUpDown } from 'lucide-react';
 
 interface AddTransactionModalProps {
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
@@ -113,21 +116,54 @@ export function AddTransactionModal({ onAddTransaction, categories, trigger }: A
             </div>
           </div>
 
-          {/* Category Select */}
+          {/* Category Combobox */}
           <div className="space-y-2">
-            <Label htmlFor="category" className="text-foreground">Category</Label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="bg-secondary border-border">
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                {categoryOptions.map((cat) => (
-                  <SelectItem key={cat} value={cat} className="focus:bg-secondary">
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-foreground">Category</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className="w-full justify-between bg-secondary border-border font-normal"
+                >
+                  {category || "Select or type a category"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0 bg-card border-border" align="start">
+                <Command className="bg-card">
+                  <CommandInput 
+                    placeholder="Search or type custom..." 
+                    value={category}
+                    onValueChange={setCategory}
+                    className="bg-card"
+                  />
+                  <CommandList>
+                    <CommandEmpty className="py-2 px-4 text-sm text-muted-foreground">
+                      Press enter to use "{category}"
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {categoryOptions.map((cat) => (
+                        <CommandItem
+                          key={cat}
+                          value={cat}
+                          onSelect={(value) => setCategory(value)}
+                          className="cursor-pointer"
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              category === cat ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {cat}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Description Input */}
