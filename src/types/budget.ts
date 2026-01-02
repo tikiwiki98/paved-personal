@@ -28,3 +28,20 @@ export interface BudgetSummary {
   totalExpenses: number;
   savingsRate: number;
 }
+
+export interface RewardCategory {
+  category: string;
+  rate: number;
+  unit: 'points' | 'percent' | 'miles';
+}
+
+export interface CreditCard {
+  id: string;
+  user_id: string;
+  card_name: string;
+  card_type: string | null;
+  issuer: string | null;
+  reward_categories: RewardCategory[];
+  created_at: string;
+  updated_at: string;
+}
