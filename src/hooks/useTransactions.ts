@@ -72,12 +72,18 @@ export function useTransactions() {
 
   const updateTransaction = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Transaction> & { id: string }) => {
-      const { error } = await supabase
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data, error } = await supabase
         .from('transactions')
         .update(updates)
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
       
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.id] });
