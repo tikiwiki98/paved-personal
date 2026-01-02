@@ -45,27 +45,37 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a credit card rewards expert. Given a credit card name, identify the exact card and return its reward categories and rates.
-            
-Return a JSON object with this exact structure:
-{
-  "cardType": "exact card name (e.g., Chase Sapphire Preferred)",
-  "issuer": "card issuer (e.g., Chase, American Express, Citi)",
-  "rewardCategories": [
-    { "category": "Dining", "rate": 3, "unit": "points" },
-    { "category": "Travel", "rate": 2, "unit": "points" },
-    { "category": "Everything else", "rate": 1, "unit": "points" }
-  ],
-  "confidence": "high" | "medium" | "low"
-}
+            content: `You are a credit card rewards expert with precise knowledge of all major US credit card reward structures.
 
-Categories should match common spending categories like: Dining, Groceries, Travel, Gas, Streaming, Entertainment, Shopping, etc.
-If you're unsure about the exact card, set confidence to "low" or "medium".
-Only return the JSON object, no other text.`
+IMPORTANT: Use NORMALIZED category names for consistency. Map card-specific terminology to these standard categories:
+- "Groceries" for supermarkets, US Supermarkets, grocery stores (e.g., Amex Gold's 4x on US Supermarkets = "Groceries" at 4x)
+- "Dining" for restaurants, US Restaurants, eating out
+- "Travel" for flights, hotels, travel purchases, travel booked through portals
+- "Gas" for gas stations, fuel
+- "Streaming" for streaming services like Netflix, Spotify
+- "Transit" for public transportation, rideshare
+- "Flights" for airlines specifically (if different from general travel)
+- "Hotels" for hotels specifically (if different from general travel)
+- "Shopping" for general retail purchases
+- "Other" for everything else (base earn rate)
+
+For example:
+- Amex Gold's "4x at US Supermarkets" should be: { "category": "Groceries", "rate": 4, "unit": "points" }
+- Amex Gold's "4x at US Restaurants" should be: { "category": "Dining", "rate": 4, "unit": "points" }
+- Chase Sapphire Preferred's "3x on dining" should be: { "category": "Dining", "rate": 3, "unit": "points" }
+
+Be PRECISE about rates. Common cards:
+- Amex Gold: 4x Groceries (up to $25k/yr), 4x Dining, 3x Flights, 1x Other
+- Chase Sapphire Preferred: 3x Dining, 3x Streaming, 2x Travel, 5x Travel via Chase, 1x Other
+- Citi Double Cash: 2% on everything (1% when you buy + 1% when you pay)
+- Discover it: 5% rotating categories, 1% other
+
+Return accurate, current reward structures. If you're unsure, set confidence to "low".
+Only return the JSON object via the function call, no other text.`
           },
           {
             role: 'user',
-            content: `What are the reward categories and rates for this credit card: "${cardName}"?`
+            content: `Identify this credit card and return its EXACT reward structure using normalized category names: "${cardName}"`
           }
         ],
         tools: [
@@ -73,25 +83,33 @@ Only return the JSON object, no other text.`
             type: "function",
             function: {
               name: "get_card_benefits",
-              description: "Return the credit card benefits and reward categories",
+              description: "Return the credit card benefits and reward categories with normalized category names",
               parameters: {
                 type: "object",
                 properties: {
-                  cardType: { type: "string", description: "The exact card name" },
-                  issuer: { type: "string", description: "The card issuer" },
+                  cardType: { type: "string", description: "The exact official card name" },
+                  issuer: { type: "string", description: "The card issuer (Chase, American Express, Citi, etc.)" },
                   rewardCategories: {
                     type: "array",
+                    description: "Array of reward categories using normalized names (Groceries, Dining, Travel, Gas, etc.)",
                     items: {
                       type: "object",
                       properties: {
-                        category: { type: "string" },
-                        rate: { type: "number" },
+                        category: { 
+                          type: "string",
+                          description: "Normalized category: Groceries, Dining, Travel, Gas, Streaming, Transit, Flights, Hotels, Shopping, or Other"
+                        },
+                        rate: { type: "number", description: "The multiplier or percentage (e.g., 4 for 4x or 4%)" },
                         unit: { type: "string", enum: ["points", "percent", "miles"] }
                       },
                       required: ["category", "rate", "unit"]
                     }
                   },
-                  confidence: { type: "string", enum: ["high", "medium", "low"] }
+                  confidence: { 
+                    type: "string", 
+                    enum: ["high", "medium", "low"],
+                    description: "high if you're certain about the card and rates, medium if mostly sure, low if uncertain"
+                  }
                 },
                 required: ["cardType", "issuer", "rewardCategories", "confidence"]
               }
