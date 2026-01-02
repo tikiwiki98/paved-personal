@@ -107,7 +107,7 @@ export default function Auth() {
             <Wallet className="w-8 h-8 text-primary-foreground" />
           </div>
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-foreground">BudgetFlow</h1>
+            <h1 className="text-3xl font-bold text-foreground">Paved</h1>
             <p className="text-muted-foreground mt-1">Personal Finance Tracker</p>
           </div>
         </div>

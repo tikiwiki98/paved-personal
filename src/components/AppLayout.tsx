@@ -41,10 +41,7 @@ function DesktopSidebar() {
             <Wallet className="w-5 h-5 text-primary-foreground" />
           </div>
           {!isCollapsed && (
-            <div className="min-w-0">
-              <h1 className="text-lg font-bold text-foreground">BudgetFlow</h1>
-              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-            </div>
+            <h1 className="text-lg font-bold text-foreground">Paved</h1>
           )}
         </div>
       </SidebarHeader>
@@ -130,7 +127,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
             <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center">
               <Wallet className="w-4 h-4 text-primary-foreground" />
             </div>
-            <h1 className="text-lg font-bold text-foreground">BudgetFlow</h1>
+            <h1 className="text-lg font-bold text-foreground">Paved</h1>
           </div>
         </div>
       </header>
