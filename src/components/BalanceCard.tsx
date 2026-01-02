@@ -1,19 +1,19 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Transaction } from '@/types/budget';
-import { SummaryRangeSelector, SummaryRange } from '@/components/SummaryRangeSelector';
+import { SummaryRangeSelector } from '@/components/SummaryRangeSelector';
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 import { InsightCard } from '@/components/InsightCard';
 import { useBalanceInsight } from '@/hooks/useInsights';
+import { useTimeFrame } from '@/contexts/TimeFrameContext';
 
 interface BalanceCardProps {
   transactions: Transaction[];
 }
 
 export function BalanceCard({ transactions }: BalanceCardProps) {
-  const [range, setRange] = useState<SummaryRange>('mtd');
-  const [hasInteracted, setHasInteracted] = useState(false);
+  const { range, setRange } = useTimeFrame();
 
   const filteredTransactions = useMemo(() => {
     return filterTransactionsByRange(transactions, range);
@@ -37,12 +37,7 @@ export function BalanceCard({ transactions }: BalanceCardProps) {
     };
   }, [filteredTransactions]);
 
-  const { message: insight } = useBalanceInsight(filteredTransactions, hasInteracted);
-
-  const handleRangeChange = (newRange: SummaryRange) => {
-    setRange(newRange);
-    setHasInteracted(true);
-  };
+  const { message: insight } = useBalanceInsight(filteredTransactions, true);
 
   return (
     <Card className="gradient-card border-border/50 p-6 shadow-card animate-slide-up">
@@ -92,7 +87,7 @@ export function BalanceCard({ transactions }: BalanceCardProps) {
 
       {insight && <InsightCard message={insight} className="mt-4" />}
 
-      <SummaryRangeSelector value={range} onChange={handleRangeChange} />
+      <SummaryRangeSelector value={range} onChange={setRange} />
     </Card>
   );
 }
