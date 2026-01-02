@@ -4,6 +4,8 @@ import { Card } from '@/components/ui/card';
 import { Transaction } from '@/types/budget';
 import { SummaryRangeSelector, SummaryRange } from '@/components/SummaryRangeSelector';
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
+import { InsightCard } from '@/components/InsightCard';
+import { useBalanceInsight } from '@/hooks/useInsights';
 
 interface BalanceCardProps {
   transactions: Transaction[];
@@ -11,14 +13,17 @@ interface BalanceCardProps {
 
 export function BalanceCard({ transactions }: BalanceCardProps) {
   const [range, setRange] = useState<SummaryRange>('mtd');
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  const filteredTransactions = useMemo(() => {
+    return filterTransactionsByRange(transactions, range);
+  }, [transactions, range]);
 
   const { totalBalance, totalIncome, totalExpenses, savingsRate } = useMemo(() => {
-    const filtered = filterTransactionsByRange(transactions, range);
-    
-    const income = filtered
+    const income = filteredTransactions
       .filter((t) => t.type === 'income')
       .reduce((acc, t) => acc + t.amount, 0);
-    const expenses = filtered
+    const expenses = filteredTransactions
       .filter((t) => t.type === 'expense')
       .reduce((acc, t) => acc + t.amount, 0);
     const balance = income - expenses;
@@ -30,7 +35,14 @@ export function BalanceCard({ transactions }: BalanceCardProps) {
       totalExpenses: expenses,
       savingsRate: rate,
     };
-  }, [transactions, range]);
+  }, [filteredTransactions]);
+
+  const { message: insight } = useBalanceInsight(filteredTransactions, hasInteracted);
+
+  const handleRangeChange = (newRange: SummaryRange) => {
+    setRange(newRange);
+    setHasInteracted(true);
+  };
 
   return (
     <Card className="gradient-card border-border/50 p-6 shadow-card animate-slide-up">
@@ -78,7 +90,9 @@ export function BalanceCard({ transactions }: BalanceCardProps) {
         </div>
       </div>
 
-      <SummaryRangeSelector value={range} onChange={setRange} />
+      {insight && <InsightCard message={insight} className="mt-4" />}
+
+      <SummaryRangeSelector value={range} onChange={handleRangeChange} />
     </Card>
   );
 }

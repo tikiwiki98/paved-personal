@@ -8,8 +8,10 @@ import { CategoryPieChart } from '@/components/charts/CategoryPieChart';
 import { CategoryBarChart } from '@/components/charts/CategoryBarChart';
 import { PaymentTypeChart } from '@/components/charts/PaymentTypeChart';
 import { DateRangeSelector, DateRange } from '@/components/charts/DateRangeSelector';
+import { InsightCard } from '@/components/InsightCard';
+import { useTrendsInsight } from '@/hooks/useInsights';
 import { Loader2, TrendingUp } from 'lucide-react';
-import { subDays, subMonths, subYears, parseISO, isAfter } from 'date-fns';
+import { subDays, subMonths, subYears, parseISO, isAfter, isBefore, startOfDay } from 'date-fns';
 
 const Trends = () => {
   const { user, loading: authLoading } = useAuth();
@@ -17,6 +19,8 @@ const Trends = () => {
   const { transactions, isLoading: transactionsLoading } = useTransactions();
   const { categories, isLoading: categoriesLoading } = useCategories(transactions);
   const [dateRange, setDateRange] = useState<DateRange>('1m');
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const [interactionType, setInteractionType] = useState<'range' | 'category' | 'payment'>('range');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -26,6 +30,7 @@ const Trends = () => {
 
   const filteredTransactions = useMemo(() => {
     const now = new Date();
+    const today = startOfDay(now);
     let startDate: Date;
 
     switch (dateRange) {
@@ -51,7 +56,11 @@ const Trends = () => {
         startDate = subMonths(now, 1);
     }
 
-    return transactions.filter((t) => isAfter(parseISO(t.date), startDate));
+    return transactions.filter((t) => {
+      const transactionDate = startOfDay(parseISO(t.date));
+      return isAfter(transactionDate, startDate) && 
+             (isBefore(transactionDate, today) || transactionDate.getTime() === today.getTime());
+    });
   }, [transactions, dateRange]);
 
   const totalExpenses = useMemo(() => {
@@ -59,6 +68,14 @@ const Trends = () => {
       .filter((t) => t.type === 'expense')
       .reduce((acc, t) => acc + t.amount, 0);
   }, [filteredTransactions]);
+
+  const { message: insight } = useTrendsInsight(filteredTransactions, hasInteracted, interactionType);
+
+  const handleDateRangeChange = (newRange: DateRange) => {
+    setDateRange(newRange);
+    setHasInteracted(true);
+    setInteractionType('range');
+  };
 
   if (authLoading || transactionsLoading || categoriesLoading) {
     return (
@@ -88,8 +105,11 @@ const Trends = () => {
               </p>
             </div>
           </div>
-          <DateRangeSelector value={dateRange} onChange={setDateRange} />
+          <DateRangeSelector value={dateRange} onChange={handleDateRangeChange} />
         </div>
+
+        {/* Insight */}
+        {insight && <InsightCard message={insight} className="mb-6" />}
 
         {/* Charts Grid */}
         <div className="grid gap-6 md:grid-cols-2">
