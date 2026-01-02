@@ -50,13 +50,10 @@ export default function Auth() {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
-          let message = error.message;
-          if (error.message.includes('Invalid login credentials')) {
-            message = 'Invalid email or password. Please try again.';
-          }
+          // Use generic message to prevent user enumeration
           toast({
             title: 'Sign In Failed',
-            description: message,
+            description: 'Invalid email or password. Please try again.',
             variant: 'destructive',
           });
         } else {
@@ -68,13 +65,11 @@ export default function Auth() {
       } else {
         const { error } = await signUp(email, password);
         if (error) {
-          let message = error.message;
-          if (error.message.includes('User already registered')) {
-            message = 'This email is already registered. Please sign in instead.';
-          }
+          // Use generic message to prevent user enumeration
+          // Don't reveal if email already exists
           toast({
             title: 'Sign Up Failed',
-            description: message,
+            description: 'Unable to create account. Please try again or use a different email.',
             variant: 'destructive',
           });
         } else {
