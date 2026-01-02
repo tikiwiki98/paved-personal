@@ -44,6 +44,39 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_cards: {
+        Row: {
+          card_name: string
+          card_type: string | null
+          created_at: string
+          id: string
+          issuer: string | null
+          reward_categories: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          card_name: string
+          card_type?: string | null
+          created_at?: string
+          id?: string
+          issuer?: string | null
+          reward_categories?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          card_name?: string
+          card_type?: string | null
+          created_at?: string
+          id?: string
+          issuer?: string | null
+          reward_categories?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
