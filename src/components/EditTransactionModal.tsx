@@ -22,6 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO } from 'date-fns';
+import { useCreditCards } from '@/hooks/useCreditCards';
 
 interface EditTransactionModalProps {
   transaction: Transaction | null;
@@ -44,6 +45,7 @@ export function EditTransactionModal({
   categories,
   transactions = [],
 }: EditTransactionModalProps) {
+  const { creditCards, addCreditCard } = useCreditCards();
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
@@ -57,6 +59,9 @@ export function EditTransactionModal({
   const [showPaymentType, setShowPaymentType] = useState(false);
   const [paymentType, setPaymentType] = useState<string>('');
   const [paymentDescription, setPaymentDescription] = useState('');
+  const [selectedCreditCardId, setSelectedCreditCardId] = useState<string>('');
+  const [newCardName, setNewCardName] = useState('');
+  const [isAddingNewCard, setIsAddingNewCard] = useState(false);
 
   useEffect(() => {
     if (transaction) {
@@ -72,12 +77,28 @@ export function EditTransactionModal({
       setShowPaymentType(!!transaction.payment_type);
       setPaymentType(transaction.payment_type || '');
       setPaymentDescription(transaction.payment_description || '');
+      setSelectedCreditCardId(transaction.credit_card_id || '');
+      setIsAddingNewCard(false);
+      setNewCardName('');
     }
   }, [transaction]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!transaction || !amount || !category || !description) return;
+
+    // If adding a new credit card, create it first
+    let creditCardId: string | null = null;
+    if (showPaymentType && paymentType === 'credit_card') {
+      if (isAddingNewCard && newCardName.trim()) {
+        const newCard = await addCreditCard(newCardName.trim());
+        if (newCard) {
+          creditCardId = newCard.id;
+        }
+      } else if (selectedCreditCardId) {
+        creditCardId = selectedCreditCardId;
+      }
+    }
 
     const updateData: Partial<Transaction> & { id: string } = {
       id: transaction.id,
@@ -102,9 +123,11 @@ export function EditTransactionModal({
     if (showPaymentType && paymentType) {
       updateData.payment_type = paymentType;
       updateData.payment_description = paymentDescription || null;
+      updateData.credit_card_id = creditCardId;
     } else {
       updateData.payment_type = null;
       updateData.payment_description = null;
+      updateData.credit_card_id = null;
     }
 
     onUpdateTransaction(updateData);
@@ -397,7 +420,14 @@ export function EditTransactionModal({
                   {/* Payment Type Select */}
                   <div className="space-y-2">
                     <Label className="text-foreground">Payment Type</Label>
-                    <Select value={paymentType} onValueChange={setPaymentType}>
+                    <Select value={paymentType} onValueChange={(value) => {
+                      setPaymentType(value);
+                      if (value !== 'credit_card') {
+                        setSelectedCreditCardId('');
+                        setIsAddingNewCard(false);
+                        setNewCardName('');
+                      }
+                    }}>
                       <SelectTrigger className="bg-secondary border-border">
                         <SelectValue placeholder="Select payment type" />
                       </SelectTrigger>
@@ -416,17 +446,67 @@ export function EditTransactionModal({
                     </Select>
                   </div>
 
-                  {/* Payment Description */}
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-payment-description" className="text-foreground">Payment Note (Optional)</Label>
-                    <Input
-                      id="edit-payment-description"
-                      placeholder="e.g., Chase Sapphire, ending in 4242"
-                      value={paymentDescription}
-                      onChange={(e) => setPaymentDescription(e.target.value)}
-                      className="bg-secondary border-border"
-                    />
-                  </div>
+                  {/* Credit Card Selection - Only show when credit_card is selected */}
+                  {paymentType === 'credit_card' && (
+                    <div className="space-y-2">
+                      <Label className="text-foreground">Select Card</Label>
+                      <Select 
+                        value={isAddingNewCard ? 'add_new' : selectedCreditCardId} 
+                        onValueChange={(value) => {
+                          if (value === 'add_new') {
+                            setIsAddingNewCard(true);
+                            setSelectedCreditCardId('');
+                          } else {
+                            setIsAddingNewCard(false);
+                            setSelectedCreditCardId(value);
+                            setNewCardName('');
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="bg-secondary border-border">
+                          <SelectValue placeholder="Select a credit card" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border">
+                          {creditCards.map((card) => (
+                            <SelectItem key={card.id} value={card.id}>
+                              {card.card_name}{card.card_type ? ` (${card.card_type})` : ''}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="add_new" className="text-primary font-medium">
+                            + Add New Credit Card
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* New Card Input - Only show when adding new card */}
+                  {paymentType === 'credit_card' && isAddingNewCard && (
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-new-card-name" className="text-foreground">New Card Name</Label>
+                      <Input
+                        id="edit-new-card-name"
+                        placeholder="e.g., Chase Sapphire Preferred"
+                        value={newCardName}
+                        onChange={(e) => setNewCardName(e.target.value)}
+                        className="bg-secondary border-border"
+                      />
+                    </div>
+                  )}
+
+                  {/* Payment Description - Only show for non-credit card types */}
+                  {paymentType !== 'credit_card' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-payment-description" className="text-foreground">Payment Note (Optional)</Label>
+                      <Input
+                        id="edit-payment-description"
+                        placeholder="e.g., ending in 4242"
+                        value={paymentDescription}
+                        onChange={(e) => setPaymentDescription(e.target.value)}
+                        className="bg-secondary border-border"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

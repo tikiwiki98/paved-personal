@@ -11,6 +11,7 @@ export interface Transaction {
   recurring_end_date?: string | null;
   payment_type?: string | null;
   payment_description?: string | null;
+  credit_card_id?: string | null;
 }
 
 export interface Category {
