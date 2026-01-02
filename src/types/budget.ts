@@ -5,6 +5,10 @@ export interface Transaction {
   category: string;
   description: string;
   date: string;
+  is_recurring?: boolean;
+  recurring_frequency?: string;
+  recurring_start_date?: string;
+  recurring_end_date?: string | null;
 }
 
 export interface Category {

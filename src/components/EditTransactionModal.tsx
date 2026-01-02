@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowUpRight, ArrowDownRight, Trash2, Check, ChevronsUpDown } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Trash2, Check, ChevronsUpDown, Repeat, CalendarIcon } from 'lucide-react';
 import { Transaction, Category } from '@/types/budget';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -18,6 +18,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { format, parseISO } from 'date-fns';
 
 interface EditTransactionModalProps {
   transaction: Transaction | null;
@@ -44,6 +48,10 @@ export function EditTransactionModal({
   const [description, setDescription] = useState('');
   const [date, setDate] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringFrequency, setRecurringFrequency] = useState<string>('monthly');
+  const [recurringStartDate, setRecurringStartDate] = useState<Date | undefined>(undefined);
+  const [recurringEndDate, setRecurringEndDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     if (transaction) {
@@ -52,6 +60,10 @@ export function EditTransactionModal({
       setCategory(transaction.category);
       setDescription(transaction.description);
       setDate(transaction.date);
+      setIsRecurring(transaction.is_recurring || false);
+      setRecurringFrequency(transaction.recurring_frequency || 'monthly');
+      setRecurringStartDate(transaction.recurring_start_date ? parseISO(transaction.recurring_start_date) : undefined);
+      setRecurringEndDate(transaction.recurring_end_date ? parseISO(transaction.recurring_end_date) : undefined);
     }
   }, [transaction]);
 
@@ -59,14 +71,27 @@ export function EditTransactionModal({
     e.preventDefault();
     if (!transaction || !amount || !category || !description) return;
 
-    onUpdateTransaction({
+    const updateData: Partial<Transaction> & { id: string } = {
       id: transaction.id,
       amount: parseFloat(amount),
       type,
       category,
       description,
       date,
-    });
+      is_recurring: isRecurring,
+    };
+
+    if (isRecurring && recurringStartDate) {
+      updateData.recurring_frequency = recurringFrequency;
+      updateData.recurring_start_date = format(recurringStartDate, 'yyyy-MM-dd');
+      updateData.recurring_end_date = recurringEndDate ? format(recurringEndDate, 'yyyy-MM-dd') : null;
+    } else {
+      updateData.recurring_frequency = undefined;
+      updateData.recurring_start_date = undefined;
+      updateData.recurring_end_date = null;
+    }
+
+    onUpdateTransaction(updateData);
 
     onOpenChange(false);
   };
@@ -215,6 +240,111 @@ export function EditTransactionModal({
                 onChange={(e) => setDate(e.target.value)}
                 className="bg-secondary border-border"
               />
+            </div>
+
+            {/* Recurring Toggle */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Repeat className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="edit-recurring" className="text-foreground cursor-pointer">Recurring?</Label>
+                </div>
+                <Switch
+                  id="edit-recurring"
+                  checked={isRecurring}
+                  onCheckedChange={setIsRecurring}
+                />
+              </div>
+
+              {/* Recurring Options - Only show when toggle is enabled */}
+              {isRecurring && (
+                <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border animate-in fade-in slide-in-from-top-2 duration-200">
+                  {/* Frequency */}
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Frequency</Label>
+                    <Select value={recurringFrequency} onValueChange={setRecurringFrequency}>
+                      <SelectTrigger className="bg-secondary border-border">
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border">
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="yearly">Yearly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Start Date */}
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Start Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal bg-secondary border-border",
+                            !recurringStartDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {recurringStartDate ? format(recurringStartDate, "PPP") : "Select start date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={recurringStartDate}
+                          onSelect={setRecurringStartDate}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* End Date (Optional) */}
+                  <div className="space-y-2">
+                    <Label className="text-foreground">End Date (Optional)</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal bg-secondary border-border",
+                            !recurringEndDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {recurringEndDate ? format(recurringEndDate, "PPP") : "No end date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={recurringEndDate}
+                          onSelect={setRecurringEndDate}
+                          disabled={(date) => recurringStartDate ? date < recurringStartDate : false}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {recurringEndDate && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={() => setRecurringEndDate(undefined)}
+                      >
+                        Clear end date
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Buttons */}
