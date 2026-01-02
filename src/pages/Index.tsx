@@ -65,7 +65,7 @@ const Index = () => {
               totalIncome={summary.totalIncome}
               totalExpenses={summary.totalExpenses}
             />
-            <SpendingChart transactions={transactions} />
+            <SpendingChart transactions={transactions} categories={categories} />
             <TransactionList 
               transactions={transactions} 
               categories={categories}
