@@ -5,7 +5,6 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useCreditCards } from '@/hooks/useCreditCards';
 import { AppLayout } from '@/components/AppLayout';
-import { CategoryPieChart } from '@/components/charts/CategoryPieChart';
 import { CategoryBarChart } from '@/components/charts/CategoryBarChart';
 import { PaymentTypeChart } from '@/components/charts/PaymentTypeChart';
 import { CreditCardSpendingChart } from '@/components/charts/CreditCardSpendingChart';
@@ -118,7 +117,6 @@ const Trends = () => {
 
         {/* Charts Grid */}
         <div className="grid gap-6 md:grid-cols-2">
-          <CategoryPieChart transactions={filteredTransactions} categories={categories} />
           <CategoryBarChart transactions={filteredTransactions} categories={categories} />
           <CreditCardSpendingChart transactions={filteredTransactions} creditCards={creditCards} />
           <PaymentTypeChart transactions={filteredTransactions} />
