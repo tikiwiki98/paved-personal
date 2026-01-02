@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { format, subMonths, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { SummaryRangeSelector, SummaryRange } from '@/components/SummaryRangeSelector';
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
+import { InsightCard } from '@/components/InsightCard';
+import { useSpendingInsight } from '@/hooks/useInsights';
 
 interface SpendingChartProps {
   transactions: Transaction[];
@@ -27,6 +29,7 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
   const [showHistorical, setShowHistorical] = useState(false);
   const [historicalMonths, setHistoricalMonths] = useState(3);
   const [range, setRange] = useState<SummaryRange>('mtd');
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   const data = useMemo(() => {
     // Filter transactions by selected range
@@ -80,9 +83,25 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
       .slice(0, 8);
   }, [transactions, categories, showHistorical, historicalMonths, range]);
 
+  const filteredForInsight = useMemo(() => {
+    return filterTransactionsByRange(transactions, range);
+  }, [transactions, range]);
+
+  const { message: insight } = useSpendingInsight(filteredForInsight, showHistorical, hasInteracted);
+
   const rangeLabel = range === 'mtd' ? format(new Date(), 'MMMM') : 
                      range === 'ytd' ? format(new Date(), 'yyyy') :
                      range.toUpperCase();
+
+  const handleRangeChange = (newRange: SummaryRange) => {
+    setRange(newRange);
+    setHasInteracted(true);
+  };
+
+  const handleHistoricalToggle = (checked: boolean) => {
+    setShowHistorical(checked);
+    setHasInteracted(true);
+  };
 
   if (data.length === 0) {
     return (
@@ -91,7 +110,7 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
         <div className="h-64 flex items-center justify-center text-muted-foreground">
           No expense data for {rangeLabel}
         </div>
-        <SummaryRangeSelector value={range} onChange={setRange} />
+        <SummaryRangeSelector value={range} onChange={handleRangeChange} />
       </Card>
     );
   }
@@ -109,7 +128,7 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
             <Switch
               id="historical-toggle"
               checked={showHistorical}
-              onCheckedChange={setShowHistorical}
+              onCheckedChange={handleHistoricalToggle}
             />
             <Label htmlFor="historical-toggle" className="text-sm text-muted-foreground cursor-pointer">
               Show Historical Average
@@ -209,7 +228,9 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
         </ResponsiveContainer>
       </div>
 
-      <SummaryRangeSelector value={range} onChange={setRange} />
+      {insight && <InsightCard message={insight} className="mt-4" />}
+
+      <SummaryRangeSelector value={range} onChange={handleRangeChange} />
     </Card>
   );
 }
