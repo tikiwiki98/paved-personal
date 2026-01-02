@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Transaction, CreditCard, RewardCategory } from '@/types/budget';
+import { Transaction, CreditCard } from '@/types/budget';
 import { InsightCard } from '@/components/InsightCard';
 import { Link } from 'react-router-dom';
 
@@ -8,29 +8,98 @@ interface CardOptimizationInsightProps {
   creditCards: CreditCard[];
 }
 
-// Normalized categories with their aliases/synonyms
-// This maps transaction categories AND card reward categories to a standard set
-const CATEGORY_ALIASES: Record<string, string[]> = {
-  'Groceries': ['groceries', 'grocery', 'supermarket', 'supermarkets', 'us supermarkets', 'food', 'whole foods', 'trader joe', 'safeway', 'kroger', 'publix', 'aldi', 'costco', 'walmart grocery'],
-  'Dining': ['dining', 'restaurants', 'restaurant', 'us restaurants', 'eating out', 'food delivery', 'doordash', 'ubereats', 'grubhub', 'takeout'],
-  'Travel': ['travel', 'flights', 'hotels', 'vacation', 'airfare', 'lodging', 'car rental', 'travel purchases'],
-  'Gas': ['gas', 'fuel', 'gas station', 'gas stations', 'ev charging', 'petrol'],
-  'Streaming': ['streaming', 'streaming services', 'netflix', 'spotify', 'hulu', 'disney+', 'hbo', 'youtube premium'],
-  'Transit': ['transit', 'public transportation', 'rideshare', 'uber', 'lyft', 'subway', 'bus', 'train'],
-  'Entertainment': ['entertainment', 'movies', 'concerts', 'games', 'gaming', 'recreation'],
-  'Shopping': ['shopping', 'retail', 'amazon', 'online shopping', 'merchandise', 'clothes', 'clothing'],
-  'Flights': ['flights', 'airlines', 'airfare', 'air travel'],
-  'Hotels': ['hotels', 'lodging', 'hotel', 'accommodation', 'airbnb'],
+// Strict category mapping - only exact matches or very specific keywords
+// Categories that DON'T earn bonus rewards should not be matched
+const CATEGORY_MAPPINGS: Record<string, { keywords: string[]; excludeKeywords: string[] }> = {
+  'Groceries': {
+    keywords: ['groceries', 'grocery', 'supermarket', 'whole foods', 'trader joe', 'safeway', 'kroger', 'publix', 'aldi', 'wegmans', 'sprouts'],
+    excludeKeywords: ['restaurant', 'dining', 'rent', 'utility', 'bill'],
+  },
+  'Dining': {
+    keywords: ['dining', 'restaurant', 'restaurants', 'eating out', 'doordash', 'ubereats', 'grubhub', 'takeout', 'cafe', 'coffee shop', 'bar', 'pub'],
+    excludeKeywords: ['groceries', 'supermarket', 'rent'],
+  },
+  'Travel': {
+    keywords: ['travel', 'flight', 'flights', 'airline', 'hotel', 'hotels', 'airbnb', 'vacation', 'airfare', 'lodging', 'car rental', 'booking.com', 'expedia'],
+    excludeKeywords: ['groceries', 'rent', 'utility', 'insurance', 'subscription'],
+  },
+  'Gas': {
+    keywords: ['gas', 'fuel', 'gas station', 'shell', 'chevron', 'exxon', 'bp', 'ev charging', 'petrol'],
+    excludeKeywords: ['groceries', 'restaurant'],
+  },
+  'Streaming': {
+    keywords: ['streaming', 'netflix', 'spotify', 'hulu', 'disney+', 'hbo', 'youtube premium', 'apple tv', 'amazon prime video'],
+    excludeKeywords: [],
+  },
+  'Transit': {
+    keywords: ['transit', 'uber', 'lyft', 'subway', 'metro', 'bus fare', 'train ticket', 'rideshare'],
+    excludeKeywords: ['rent', 'utility'],
+  },
 };
 
+// Categories that typically don't earn bonus rewards
+const NON_BONUS_CATEGORIES = ['rent', 'mortgage', 'utility', 'utilities', 'insurance', 'bills', 'tax', 'taxes', 'tuition', 'loan', 'payment'];
+
 /**
- * Normalize any category string to a standard category name
+ * Normalize a transaction category to a standard reward category
+ * Returns null if the category doesn't match any bonus category
  */
-function normalizeCategory(category: string): string {
+function normalizeTransactionCategory(category: string): string | null {
   const lower = category.toLowerCase().trim();
   
-  for (const [normalized, aliases] of Object.entries(CATEGORY_ALIASES)) {
-    if (aliases.some((alias) => lower === alias || lower.includes(alias) || alias.includes(lower))) {
+  // Check if this is a non-bonus category first
+  if (NON_BONUS_CATEGORIES.some((nonBonus) => lower.includes(nonBonus))) {
+    return null; // Don't try to optimize non-bonus categories
+  }
+  
+  for (const [normalized, { keywords, excludeKeywords }] of Object.entries(CATEGORY_MAPPINGS)) {
+    // Check if any exclude keywords match first
+    if (excludeKeywords.some((exclude) => lower.includes(exclude))) {
+      continue;
+    }
+    
+    // Check for keyword match
+    if (keywords.some((keyword) => lower.includes(keyword) || keyword.includes(lower))) {
+      return normalized;
+    }
+  }
+  
+  return null; // No matching bonus category
+}
+
+/**
+ * Normalize a card's reward category to match our standard categories
+ */
+function normalizeRewardCategory(category: string): string {
+  const lower = category.toLowerCase().trim();
+  
+  // Direct mapping for common variations
+  const directMappings: Record<string, string> = {
+    'us supermarkets': 'Groceries',
+    'supermarkets': 'Groceries',
+    'grocery': 'Groceries',
+    'groceries': 'Groceries',
+    'us restaurants': 'Dining',
+    'restaurants': 'Dining',
+    'dining': 'Dining',
+    'travel': 'Travel',
+    'flights': 'Travel',
+    'hotels': 'Travel',
+    'gas': 'Gas',
+    'gas stations': 'Gas',
+    'streaming': 'Streaming',
+    'streaming services': 'Streaming',
+    'transit': 'Transit',
+    'rideshare': 'Transit',
+  };
+  
+  if (directMappings[lower]) {
+    return directMappings[lower];
+  }
+  
+  // Check keyword mappings
+  for (const [normalized, { keywords }] of Object.entries(CATEGORY_MAPPINGS)) {
+    if (keywords.some((keyword) => lower.includes(keyword))) {
       return normalized;
     }
   }
@@ -39,20 +108,19 @@ function normalizeCategory(category: string): string {
 }
 
 /**
- * Get the reward rate for a card in a specific normalized category
+ * Get the best reward rate for a card in a specific normalized category
  */
 function getCardRateForCategory(card: CreditCard, normalizedCategory: string): number {
   if (!card.reward_categories?.length) return 1;
 
-  // Find matching reward category
   for (const reward of card.reward_categories) {
-    const normalizedRewardCategory = normalizeCategory(reward.category);
+    const normalizedRewardCategory = normalizeRewardCategory(reward.category);
     if (normalizedRewardCategory === normalizedCategory) {
       return reward.rate;
     }
   }
 
-  // Check for "Other" or base rate
+  // Check for base rate
   const baseReward = card.reward_categories.find(
     (r) => r.category.toLowerCase() === 'other' || r.category.toLowerCase() === 'everything else'
   );
@@ -67,7 +135,7 @@ function getCardUnitForCategory(card: CreditCard, normalizedCategory: string): s
   if (!card.reward_categories?.length) return 'points';
 
   for (const reward of card.reward_categories) {
-    const normalizedRewardCategory = normalizeCategory(reward.category);
+    const normalizedRewardCategory = normalizeRewardCategory(reward.category);
     if (normalizedRewardCategory === normalizedCategory) {
       return reward.unit || 'points';
     }
@@ -76,22 +144,32 @@ function getCardUnitForCategory(card: CreditCard, normalizedCategory: string): s
   return 'points';
 }
 
+interface InsightResult {
+  message: string;
+  type: 'optimization' | 'positive';
+  category: string;
+}
+
 export function CardOptimizationInsight({
   transactions,
   creditCards,
 }: CardOptimizationInsightProps) {
-  const insight = useMemo(() => {
-    // Need at least 2 cards with rewards data to compare
+  const insight = useMemo((): InsightResult | null => {
+    // Need at least 1 card with rewards data
     const cardsWithRewards = creditCards.filter((c) => c.reward_categories?.length > 0);
-    if (cardsWithRewards.length < 2) return null;
+    if (cardsWithRewards.length === 0) return null;
 
-    // Get credit card transactions grouped by normalized category
+    // Get credit card transactions grouped by normalized category (only bonus categories)
     const categorySpending: Record<string, { total: number; cards: Record<string, number> }> = {};
 
     transactions
       .filter((t) => t.type === 'expense' && t.payment_type === 'credit_card' && t.payment_description)
       .forEach((t) => {
-        const normalizedCategory = normalizeCategory(t.category);
+        const normalizedCategory = normalizeTransactionCategory(t.category);
+        
+        // Skip transactions that don't map to bonus categories
+        if (!normalizedCategory) return;
+        
         const cardName = t.payment_description || 'Unknown';
 
         if (!categorySpending[normalizedCategory]) {
@@ -102,9 +180,13 @@ export function CardOptimizationInsight({
           (categorySpending[normalizedCategory].cards[cardName] || 0) + t.amount;
       });
 
-    // Find optimization opportunities
+    // Track positive usage for potential positive feedback
+    let bestPositiveInsight: InsightResult | null = null;
+    let highestPositiveAmount = 0;
+
+    // Find optimization opportunities or positive reinforcement
     for (const [normalizedCategory, spending] of Object.entries(categorySpending)) {
-      if (spending.total < 50) continue; // Skip small categories
+      if (spending.total < 50) continue;
 
       // Find the best card for this normalized category
       let bestCard: CreditCard | null = null;
@@ -120,26 +202,40 @@ export function CardOptimizationInsight({
 
       if (!bestCard || bestRate <= 1) continue;
 
-      // Check if user is NOT using this best card for this category
       const currentCards = Object.entries(spending.cards);
       const bestCardName = bestCard.card_type || bestCard.card_name;
 
       for (const [usedCardName, amount] of currentCards) {
-        // Check if this is the best card
+        if (amount < 30) continue;
+
+        // Check if this IS the best card
         const isUsingBestCard =
           usedCardName.toLowerCase() === bestCardName.toLowerCase() ||
           usedCardName.toLowerCase().includes(bestCardName.toLowerCase()) ||
           bestCardName.toLowerCase().includes(usedCardName.toLowerCase()) ||
           usedCardName.toLowerCase() === bestCard.card_name.toLowerCase();
 
-        if (!isUsingBestCard && amount > 30) {
+        if (isUsingBestCard) {
+          // Positive reinforcement - user is using the best card!
+          if (amount > highestPositiveAmount && cardsWithRewards.length >= 2) {
+            const unit = getCardUnitForCategory(bestCard, normalizedCategory);
+            const unitDisplay = unit === 'percent' ? '%' : 'x';
+            
+            bestPositiveInsight = {
+              message: `Great choice using ${bestCardName} for ${normalizedCategory}! At ${bestRate}${unitDisplay}, it's your best card for this category.`,
+              type: 'positive',
+              category: normalizedCategory,
+            };
+            highestPositiveAmount = amount;
+          }
+        } else {
           // Find the card being used and its rate
           const usedCard = creditCards.find(
             (c) =>
               c.card_name.toLowerCase() === usedCardName.toLowerCase() ||
               c.card_type?.toLowerCase() === usedCardName.toLowerCase() ||
               usedCardName.toLowerCase().includes(c.card_name.toLowerCase()) ||
-              usedCardName.toLowerCase().includes(c.card_type?.toLowerCase() || '')
+              (c.card_type && usedCardName.toLowerCase().includes(c.card_type.toLowerCase()))
           );
 
           const usedCardRate = usedCard 
@@ -151,20 +247,19 @@ export function CardOptimizationInsight({
             const unit = getCardUnitForCategory(bestCard, normalizedCategory);
             const unitDisplay = unit === 'percent' ? '%' : 'x';
 
+            // Return optimization insight immediately (prioritize over positive)
             return {
               message: `Your ${bestCardName} earns ${bestRate}${unitDisplay} on ${normalizedCategory}. Using it instead of ${usedCardName} could optimize your $${amount.toFixed(0)} in ${normalizedCategory} spending.`,
+              type: 'optimization',
               category: normalizedCategory,
-              bestCard: bestCardName,
-              currentCard: usedCardName,
-              bestRate,
-              currentRate: usedCardRate,
             };
           }
         }
       }
     }
 
-    return null;
+    // If no optimization needed, show positive reinforcement
+    return bestPositiveInsight;
   }, [transactions, creditCards]);
 
   if (!insight) return null;
@@ -173,6 +268,7 @@ export function CardOptimizationInsight({
     <InsightCard
       message={insight.message}
       className="mb-4"
+      variant={insight.type === 'positive' ? 'success' : 'default'}
       action={
         <Link to="/cards" className="text-primary text-sm hover:underline">
           View cards →
