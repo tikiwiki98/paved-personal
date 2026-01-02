@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Transaction, Category } from '@/types/budget';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -11,16 +11,8 @@ interface SpendingChartProps {
   categories?: Category[];
 }
 
-const COLORS = [
-  'hsl(160, 84%, 39%)',
-  'hsl(217, 91%, 60%)',
-  'hsl(280, 65%, 60%)',
-  'hsl(38, 92%, 50%)',
-  'hsl(0, 72%, 51%)',
-  'hsl(180, 70%, 45%)',
-  'hsl(330, 70%, 55%)',
-  'hsl(120, 60%, 45%)',
-];
+// Consistent blue-toned color for all bars
+const BAR_COLOR = 'hsl(195, 80%, 50%)';
 
 const HISTORICAL_RANGES = [
   { label: '1m', value: 1 },
@@ -78,11 +70,10 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
     ]);
 
     return Array.from(allCategories)
-      .map((name, index) => ({
+      .map((name) => ({
         name,
         current: currentMonthExpenses[name] || 0,
         historical: historicalAverages[name] || 0,
-        color: categories.find((c) => c.name === name)?.color || COLORS[index % COLORS.length],
       }))
       .filter((item) => item.current > 0 || item.historical > 0)
       .sort((a, b) => b.current - a.current)
@@ -144,7 +135,7 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
         {showHistorical && (
           <div className="flex gap-4 text-xs">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-primary" />
+              <div className="w-3 h-3 rounded-sm bg-accent" />
               <span className="text-muted-foreground">Current</span>
             </div>
             <div className="flex items-center gap-2">
@@ -162,8 +153,15 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
               type="number"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }}
-              tickFormatter={(value) => `$${value >= 1000 ? `${value / 1000}k` : value}`}
+              tick={{ fill: 'hsl(215, 15%, 55%)', fontSize: 12 }}
+              tickFormatter={(value) => {
+                if (value === 0) return '$0';
+                if (value >= 1000) return `$${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k`;
+                return `$${Math.round(value / 100) * 100}`;
+              }}
+              domain={[0, 'auto']}
+              tickCount={5}
+              allowDecimals={false}
             />
             <YAxis
               type="category"
@@ -174,29 +172,35 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
               width={70}
             />
             <Tooltip
+              cursor={false}
               contentStyle={{
-                backgroundColor: 'hsl(222, 47%, 14%)',
-                border: '1px solid hsl(222, 30%, 22%)',
+                backgroundColor: 'hsl(220, 28%, 12%)',
+                border: '1px solid hsl(220, 20%, 18%)',
                 borderRadius: '12px',
                 padding: '12px',
               }}
-              labelStyle={{ color: 'hsl(210, 40%, 98%)' }}
+              labelStyle={{ color: 'hsl(210, 20%, 96%)' }}
               formatter={(value: number, name: string) => [
                 `$${value.toLocaleString()}`,
                 name === 'current' ? 'Current' : `Avg (${historicalMonths}m)`,
               ]}
             />
-            <Bar dataKey="current" radius={[0, 4, 4, 0]} barSize={showHistorical ? 12 : 20}>
-              {data.map((entry, index) => (
-                <Cell key={`cell-current-${index}`} fill={entry.color} />
-              ))}
-            </Bar>
+            <Bar 
+              dataKey="current" 
+              fill={BAR_COLOR}
+              radius={[0, 4, 4, 0]} 
+              barSize={showHistorical ? 12 : 20}
+              activeBar={false}
+            />
             {showHistorical && (
-              <Bar dataKey="historical" radius={[0, 4, 4, 0]} barSize={12} opacity={0.4}>
-                {data.map((entry, index) => (
-                  <Cell key={`cell-historical-${index}`} fill={entry.color} />
-                ))}
-              </Bar>
+              <Bar 
+                dataKey="historical" 
+                fill={BAR_COLOR}
+                radius={[0, 4, 4, 0]} 
+                barSize={12} 
+                opacity={0.35}
+                activeBar={false}
+              />
             )}
           </BarChart>
         </ResponsiveContainer>
