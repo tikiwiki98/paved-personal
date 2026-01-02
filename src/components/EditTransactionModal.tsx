@@ -30,6 +30,7 @@ interface EditTransactionModalProps {
   onUpdateTransaction: (transaction: Partial<Transaction> & { id: string }) => void;
   onDeleteTransaction: (id: string) => void;
   categories: Category[];
+  transactions?: Transaction[];
 }
 
 const incomeCategories = ['Salary', 'Freelance', 'Investments', 'Other Income'];
@@ -41,6 +42,7 @@ export function EditTransactionModal({
   onUpdateTransaction,
   onDeleteTransaction,
   categories,
+  transactions = [],
 }: EditTransactionModalProps) {
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [amount, setAmount] = useState('');
@@ -104,9 +106,23 @@ export function EditTransactionModal({
     }
   };
 
-  const categoryOptions = type === 'income' 
-    ? incomeCategories 
-    : categories.map((c) => c.name);
+  // Merge predefined categories with custom categories from past transactions
+  const categoryOptions = (() => {
+    if (type === 'income') {
+      const customIncomeCategories = transactions
+        .filter(t => t.type === 'income')
+        .map(t => t.category)
+        .filter(cat => !incomeCategories.includes(cat));
+      return [...new Set([...incomeCategories, ...customIncomeCategories])];
+    } else {
+      const predefinedExpense = categories.map((c) => c.name);
+      const customExpenseCategories = transactions
+        .filter(t => t.type === 'expense')
+        .map(t => t.category)
+        .filter(cat => !predefinedExpense.includes(cat));
+      return [...new Set([...predefinedExpense, ...customExpenseCategories])];
+    }
+  })();
 
   return (
     <>

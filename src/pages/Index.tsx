@@ -71,7 +71,7 @@ const Index = () => {
             <div className="flex items-center gap-2 md:gap-3">
               {/* Desktop only: Add Transaction button */}
               <div className="hidden md:block">
-                <AddTransactionModal onAddTransaction={handleAddTransaction} categories={categories} />
+                <AddTransactionModal onAddTransaction={handleAddTransaction} categories={categories} transactions={transactions} />
               </div>
               <Button
                 variant="outline"
@@ -131,6 +131,7 @@ const Index = () => {
         <AddTransactionModal 
           onAddTransaction={handleAddTransaction} 
           categories={categories}
+          transactions={transactions}
           trigger={
             <Button 
               size="icon" 

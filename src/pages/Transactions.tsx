@@ -181,6 +181,7 @@ const Transactions = () => {
         onUpdateTransaction={updateTransaction}
         onDeleteTransaction={deleteTransaction}
         categories={categories}
+        transactions={transactions}
       />
     </div>
   );

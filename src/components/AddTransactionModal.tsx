@@ -17,12 +17,13 @@ import { format } from 'date-fns';
 interface AddTransactionModalProps {
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   categories: Category[];
+  transactions?: Transaction[];
   trigger?: React.ReactNode;
 }
 
 const incomeCategories = ['Salary', 'Freelance', 'Investments', 'Other Income'];
 
-export function AddTransactionModal({ onAddTransaction, categories, trigger }: AddTransactionModalProps) {
+export function AddTransactionModal({ onAddTransaction, categories, transactions = [], trigger }: AddTransactionModalProps) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [amount, setAmount] = useState('');
@@ -69,9 +70,23 @@ export function AddTransactionModal({ onAddTransaction, categories, trigger }: A
     setOpen(false);
   };
 
-  const categoryOptions = type === 'income' 
-    ? incomeCategories 
-    : categories.map((c) => c.name);
+  // Merge predefined categories with custom categories from past transactions
+  const categoryOptions = (() => {
+    if (type === 'income') {
+      const customIncomeCategories = transactions
+        .filter(t => t.type === 'income')
+        .map(t => t.category)
+        .filter(cat => !incomeCategories.includes(cat));
+      return [...new Set([...incomeCategories, ...customIncomeCategories])];
+    } else {
+      const predefinedExpense = categories.map((c) => c.name);
+      const customExpenseCategories = transactions
+        .filter(t => t.type === 'expense')
+        .map(t => t.category)
+        .filter(cat => !predefinedExpense.includes(cat));
+      return [...new Set([...predefinedExpense, ...customExpenseCategories])];
+    }
+  })();
 
   const defaultTrigger = (
     <Button size="lg" className="gap-2 shadow-glow">

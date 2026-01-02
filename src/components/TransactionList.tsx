@@ -100,6 +100,7 @@ export function TransactionList({
         onUpdateTransaction={onUpdateTransaction}
         onDeleteTransaction={onDeleteTransaction}
         categories={categories}
+        transactions={transactions}
       />
     </>
   );
