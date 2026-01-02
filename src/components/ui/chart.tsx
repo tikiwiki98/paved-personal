@@ -58,6 +58,32 @@ const ChartContainer = React.forwardRef<
 });
 ChartContainer.displayName = "Chart";
 
+// Validates and sanitizes CSS color values to prevent XSS
+const isValidCssColor = (color: string): boolean => {
+  // Allow hex colors (#fff, #ffffff, #ffffffff)
+  if (/^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(color)) {
+    return true;
+  }
+  // Allow rgb/rgba
+  if (/^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*(0|1|0?\.\d+))?\s*\)$/.test(color)) {
+    return true;
+  }
+  // Allow hsl/hsla
+  if (/^hsla?\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*(,\s*(0|1|0?\.\d+))?\s*\)$/.test(color)) {
+    return true;
+  }
+  // Allow CSS variable references
+  if (/^var\(--[\w-]+\)$/.test(color)) {
+    return true;
+  }
+  return false;
+};
+
+const sanitizeCssKey = (key: string): string => {
+  // Only allow alphanumeric, hyphens, and underscores in CSS custom property names
+  return key.replace(/[^a-zA-Z0-9_-]/g, '');
+};
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(([_, config]) => config.theme || config.color);
 
@@ -65,18 +91,27 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null;
   }
 
+  // Sanitize the chart ID for use in CSS selector
+  const sanitizedId = id.replace(/[^a-zA-Z0-9_-]/g, '');
+
   return (
     <style
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
           .map(
             ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
+${prefix} [data-chart=${sanitizedId}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
     const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
+    // Only include validated color values
+    if (color && isValidCssColor(color)) {
+      const sanitizedKey = sanitizeCssKey(key);
+      return `  --color-${sanitizedKey}: ${color};`;
+    }
+    return null;
   })
+  .filter(Boolean)
   .join("\n")}
 }
 `,
