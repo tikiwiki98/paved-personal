@@ -7,18 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CreditCard as CreditCardIcon, Plus, Trash2, Sparkles, Check, X } from 'lucide-react';
+import { Loader2, CreditCard as CreditCardIcon, Plus, Trash2, Sparkles, Check, X, RefreshCw } from 'lucide-react';
 import { CreditCard, RewardCategory } from '@/types/budget';
 import { toast } from 'sonner';
 
 function CardItem({
   card,
-  onConfirm,
+  onLookup,
   onDelete,
   isLookingUp,
 }: {
   card: CreditCard;
-  onConfirm: (id: string, cardType: string, issuer: string, rewards: RewardCategory[]) => void;
+  onLookup: (card: CreditCard) => void;
   onDelete: (id: string) => void;
   isLookingUp: boolean;
 }) {
@@ -33,14 +33,30 @@ function CardItem({
               <CreditCardIcon className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-semibold text-foreground truncate">
                   {card.card_type || card.card_name}
                 </h3>
                 {needsConfirmation && (
-                  <Badge variant="secondary" className="text-xs">
-                    Needs confirmation
-                  </Badge>
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    onClick={() => onLookup(card)}
+                    disabled={isLookingUp}
+                    className="text-xs h-6"
+                  >
+                    {isLookingUp ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                        Looking up...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        Identify Card
+                      </>
+                    )}
+                  </Button>
                 )}
               </div>
               {card.issuer && (
@@ -64,9 +80,6 @@ function CardItem({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {isLookingUp && (
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-            )}
             <Button
               variant="ghost"
               size="icon"
@@ -300,17 +313,25 @@ const Cards = () => {
     await deleteCreditCard(id);
   };
 
-  const handleConfirmExisting = async (
-    id: string,
-    cardType: string,
-    issuer: string,
-    rewards: RewardCategory[]
-  ) => {
-    await updateCreditCard(id, {
-      card_type: cardType,
-      issuer: issuer,
-      reward_categories: rewards,
-    });
+  const [lookingUpCardId, setLookingUpCardId] = useState<string | null>(null);
+
+  const handleLookupExistingCard = async (card: CreditCard) => {
+    setLookingUpCardId(card.id);
+    
+    const benefits = await lookupCardBenefits(card.card_name);
+    
+    if (benefits) {
+      setPendingConfirmation({
+        cardId: card.id,
+        isLookingUp: false,
+        suggestedType: benefits.cardType,
+        suggestedIssuer: benefits.issuer,
+        suggestedRewards: benefits.rewardCategories,
+        confidence: benefits.confidence,
+      });
+    }
+    
+    setLookingUpCardId(null);
   };
 
   if (authLoading || isLoading) {
@@ -384,9 +405,9 @@ const Cards = () => {
                 <CardItem
                   key={card.id}
                   card={card}
-                  onConfirm={handleConfirmExisting}
+                  onLookup={handleLookupExistingCard}
                   onDelete={handleDeleteCard}
-                  isLookingUp={false}
+                  isLookingUp={lookingUpCardId === card.id}
                 />
               ))
           )}

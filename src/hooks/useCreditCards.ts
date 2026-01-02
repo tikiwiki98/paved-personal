@@ -132,11 +132,24 @@ export function useCreditCards() {
 
   const lookupCardBenefits = async (cardName: string) => {
     try {
+      console.log('Looking up card benefits for:', cardName);
+      
       const { data, error } = await supabase.functions.invoke('lookup-card-benefits', {
         body: { cardName },
       });
 
-      if (error) throw error;
+      console.log('Card lookup response:', { data, error });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+
+      if (data?.error) {
+        console.error('AI lookup error:', data.error);
+        toast.error(data.error);
+        return null;
+      }
 
       return data as {
         cardType: string;
@@ -146,6 +159,7 @@ export function useCreditCards() {
       };
     } catch (error) {
       console.error('Error looking up card benefits:', error);
+      toast.error('Failed to look up card benefits. Please try again.');
       return null;
     }
   };
