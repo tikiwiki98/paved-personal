@@ -17,8 +17,8 @@
     --popover: 220 28% 14%;
     --popover-foreground: 210 20% 96%;
 
-    /* Calming teal primary - growth, savings, trust */
-    --primary: 175 70% 42%;
+    /* Yellow/orange primary - action-oriented, warm trust */
+    --primary: 38 92% 50%;
     --primary-foreground: 220 30% 8%;
 
     /* Subtle secondary for less emphasis */
@@ -29,16 +29,16 @@
     --muted: 220 20% 18%;
     --muted-foreground: 215 15% 55%;
 
-    /* Accent for highlights and toggles */
-    --accent: 195 80% 50%;
+    /* Accent for highlights and toggles - warm orange */
+    --accent: 32 95% 55%;
     --accent-foreground: 220 30% 8%;
 
-    /* Clear destructive for warnings - not alarming */
+    /* Clear destructive for critical actions */
     --destructive: 0 65% 55%;
     --destructive-foreground: 210 20% 96%;
 
-    /* Success aligned with income/savings */
-    --success: 160 60% 45%;
+    /* Success - calm blue tone */
+    --success: 200 70% 50%;
     --success-foreground: 220 30% 8%;
 
     /* Warm amber for warnings - attention without alarm */
@@ -48,36 +48,36 @@
     /* Borders and inputs - subtle definition */
     --border: 220 20% 18%;
     --input: 220 22% 16%;
-    --ring: 175 70% 42%;
+    --ring: 38 92% 50%;
 
     --radius: 0.75rem;
 
-    /* Finance-specific tokens */
-    --income: 160 60% 45%;
-    --expense: 0 55% 50%;
+    /* Finance-specific tokens - blue-based palette */
+    --income: 200 75% 55%;
+    --expense: 220 60% 45%;
     
     /* Refined gradients and shadows */
     --gradient-card: linear-gradient(135deg, hsl(220 28% 14%), hsl(220 28% 10%));
-    --gradient-primary: linear-gradient(135deg, hsl(175 70% 42%), hsl(175 70% 34%));
-    --shadow-glow: 0 0 40px hsl(175 70% 42% / 0.12);
+    --gradient-primary: linear-gradient(135deg, hsl(38 92% 50%), hsl(32 90% 45%));
+    --shadow-glow: 0 0 40px hsl(38 92% 50% / 0.15);
     --shadow-card: 0 4px 24px hsl(220 30% 4% / 0.5);
 
     /* Sidebar - consistent with main theme */
     --sidebar-background: 220 30% 6%;
     --sidebar-foreground: 210 20% 96%;
-    --sidebar-primary: 175 70% 42%;
+    --sidebar-primary: 38 92% 50%;
     --sidebar-primary-foreground: 220 30% 8%;
     --sidebar-accent: 220 25% 14%;
     --sidebar-accent-foreground: 210 20% 90%;
     --sidebar-border: 220 20% 15%;
-    --sidebar-ring: 175 70% 42%;
+    --sidebar-ring: 38 92% 50%;
 
-    /* Chart colors - clear distinction */
-    --chart-1: 175 70% 42%;
-    --chart-2: 195 80% 50%;
-    --chart-3: 160 60% 45%;
-    --chart-4: 40 90% 50%;
-    --chart-5: 280 60% 55%;
+    /* Chart colors - blue-based palette */
+    --chart-1: 200 75% 55%;
+    --chart-2: 210 70% 50%;
+    --chart-3: 195 65% 48%;
+    --chart-4: 220 60% 45%;
+    --chart-5: 185 60% 50%;
   }
 
   .dark {
@@ -87,19 +87,19 @@
     --card-foreground: 210 20% 96%;
     --popover: 220 28% 14%;
     --popover-foreground: 210 20% 96%;
-    --primary: 175 70% 42%;
+    --primary: 38 92% 50%;
     --primary-foreground: 220 30% 8%;
     --secondary: 220 25% 16%;
     --secondary-foreground: 210 20% 90%;
     --muted: 220 20% 18%;
     --muted-foreground: 215 15% 55%;
-    --accent: 195 80% 50%;
+    --accent: 32 95% 55%;
     --accent-foreground: 220 30% 8%;
     --destructive: 0 65% 55%;
     --destructive-foreground: 210 20% 96%;
     --border: 220 20% 18%;
     --input: 220 22% 16%;
-    --ring: 175 70% 42%;
+    --ring: 38 92% 50%;
   }
 }
 
