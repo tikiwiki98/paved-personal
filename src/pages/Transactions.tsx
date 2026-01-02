@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, ArrowDownRight, ArrowLeft, Search } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, ArrowLeft, Search, Repeat, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,6 @@ import { EditTransactionModal } from '@/components/EditTransactionModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
-import { Loader2 } from 'lucide-react';
 
 const Transactions = () => {
   const navigate = useNavigate();
@@ -146,7 +145,12 @@ const Transactions = () => {
                       )}
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">{transaction.description}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium text-foreground">{transaction.description}</p>
+                        {transaction.is_recurring && (
+                          <Repeat className="w-3.5 h-3.5 text-primary" />
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">{transaction.category}</p>
                     </div>
                   </div>

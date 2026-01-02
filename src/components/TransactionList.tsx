@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Repeat } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Transaction, Category } from '@/types/budget';
 import { format, parseISO } from 'date-fns';
@@ -65,7 +65,12 @@ export function TransactionList({
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">{transaction.description}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-medium text-foreground">{transaction.description}</p>
+                      {transaction.is_recurring && (
+                        <Repeat className="w-3.5 h-3.5 text-primary" />
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground">{transaction.category}</p>
                   </div>
                 </div>
