@@ -33,6 +33,8 @@ export function useTransactions() {
         recurring_frequency: t.recurring_frequency ?? undefined,
         recurring_start_date: t.recurring_start_date ?? undefined,
         recurring_end_date: t.recurring_end_date ?? undefined,
+        payment_type: t.payment_type ?? undefined,
+        payment_description: t.payment_description ?? undefined,
       })) as Transaction[];
     },
     enabled: !!user,
@@ -55,6 +57,8 @@ export function useTransactions() {
           recurring_frequency: transaction.recurring_frequency ?? null,
           recurring_start_date: transaction.recurring_start_date ?? null,
           recurring_end_date: transaction.recurring_end_date ?? null,
+          payment_type: transaction.payment_type ?? null,
+          payment_description: transaction.payment_description ?? null,
         })
         .select()
         .single();

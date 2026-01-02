@@ -53,6 +53,8 @@ export type Database = {
           description: string
           id: string
           is_recurring: boolean | null
+          payment_description: string | null
+          payment_type: string | null
           recurring_end_date: string | null
           recurring_frequency: string | null
           recurring_start_date: string | null
@@ -67,6 +69,8 @@ export type Database = {
           description: string
           id?: string
           is_recurring?: boolean | null
+          payment_description?: string | null
+          payment_type?: string | null
           recurring_end_date?: string | null
           recurring_frequency?: string | null
           recurring_start_date?: string | null
@@ -81,6 +85,8 @@ export type Database = {
           description?: string
           id?: string
           is_recurring?: boolean | null
+          payment_description?: string | null
+          payment_type?: string | null
           recurring_end_date?: string | null
           recurring_frequency?: string | null
           recurring_start_date?: string | null

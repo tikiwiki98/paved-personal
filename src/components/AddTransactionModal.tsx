@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, ArrowUpRight, ArrowDownRight, Repeat, CalendarIcon } from 'lucide-react';
+import { Plus, ArrowUpRight, ArrowDownRight, Repeat, CalendarIcon, CreditCard } from 'lucide-react';
 import { Transaction, Category } from '@/types/budget';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -33,6 +33,9 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
   const [recurringFrequency, setRecurringFrequency] = useState<string>('monthly');
   const [recurringStartDate, setRecurringStartDate] = useState<Date | undefined>(undefined);
   const [recurringEndDate, setRecurringEndDate] = useState<Date | undefined>(undefined);
+  const [showPaymentType, setShowPaymentType] = useState(false);
+  const [paymentType, setPaymentType] = useState<string>('');
+  const [paymentDescription, setPaymentDescription] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +46,8 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
       recurring_frequency?: string;
       recurring_start_date?: string;
       recurring_end_date?: string | null;
+      payment_type?: string | null;
+      payment_description?: string | null;
     } = {
       amount: parseFloat(amount),
       type,
@@ -58,6 +63,11 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
       transactionData.recurring_end_date = recurringEndDate ? format(recurringEndDate, 'yyyy-MM-dd') : null;
     }
 
+    if (showPaymentType && paymentType) {
+      transactionData.payment_type = paymentType;
+      transactionData.payment_description = paymentDescription || null;
+    }
+
     onAddTransaction(transactionData as Omit<Transaction, 'id'>);
 
     setAmount('');
@@ -67,6 +77,9 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
     setRecurringFrequency('monthly');
     setRecurringStartDate(undefined);
     setRecurringEndDate(undefined);
+    setShowPaymentType(false);
+    setPaymentType('');
+    setPaymentDescription('');
     setOpen(false);
   };
 
@@ -100,7 +113,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
       <DialogTrigger asChild>
         {trigger || defaultTrigger}
       </DialogTrigger>
-      <DialogContent className="bg-card border-border sm:max-w-md">
+      <DialogContent className="bg-card border-border sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground">Add New Transaction</DialogTitle>
         </DialogHeader>
@@ -319,6 +332,60 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                       Clear end date
                     </Button>
                   )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Payment Type Toggle */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-muted-foreground" />
+                <Label htmlFor="payment-type-toggle" className="text-foreground cursor-pointer">Add Payment Type?</Label>
+              </div>
+              <Switch
+                id="payment-type-toggle"
+                checked={showPaymentType}
+                onCheckedChange={setShowPaymentType}
+              />
+            </div>
+
+            {/* Payment Type Options - Only show when toggle is enabled */}
+            {showPaymentType && (
+              <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border animate-in fade-in slide-in-from-top-2 duration-200">
+                {/* Payment Type Select */}
+                <div className="space-y-2">
+                  <Label className="text-foreground">Payment Type</Label>
+                  <Select value={paymentType} onValueChange={setPaymentType}>
+                    <SelectTrigger className="bg-secondary border-border">
+                      <SelectValue placeholder="Select payment type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border">
+                      <SelectItem value="credit_card">Credit Card</SelectItem>
+                      <SelectItem value="debit_card">Debit Card</SelectItem>
+                      <SelectItem value="cash">Cash</SelectItem>
+                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="venmo">Venmo</SelectItem>
+                      <SelectItem value="paypal">PayPal</SelectItem>
+                      <SelectItem value="zelle">Zelle</SelectItem>
+                      <SelectItem value="crypto">Crypto</SelectItem>
+                      <SelectItem value="check">Check</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Payment Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="payment-description" className="text-foreground">Payment Note (Optional)</Label>
+                  <Input
+                    id="payment-description"
+                    placeholder="e.g., Chase Sapphire, ending in 4242"
+                    value={paymentDescription}
+                    onChange={(e) => setPaymentDescription(e.target.value)}
+                    className="bg-secondary border-border"
+                  />
                 </div>
               </div>
             )}
