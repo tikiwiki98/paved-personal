@@ -29,6 +29,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringFrequency, setRecurringFrequency] = useState<string>('monthly');
   const [recurringStartDate, setRecurringStartDate] = useState<Date | undefined>(undefined);
@@ -53,7 +54,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
       type,
       category,
       description,
-      date: new Date().toISOString().split('T')[0],
+      date,
     };
 
     if (isRecurring && recurringStartDate) {
@@ -73,6 +74,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
     setAmount('');
     setCategory('');
     setDescription('');
+    setDate(new Date().toISOString().split('T')[0]);
     setIsRecurring(false);
     setRecurringFrequency('monthly');
     setRecurringStartDate(undefined);
@@ -228,6 +230,18 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
               placeholder="Enter a description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              className="bg-secondary border-border"
+            />
+          </div>
+
+          {/* Date Input */}
+          <div className="space-y-2">
+            <Label htmlFor="date" className="text-foreground">Date</Label>
+            <Input
+              id="date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
               className="bg-secondary border-border"
             />
           </div>
