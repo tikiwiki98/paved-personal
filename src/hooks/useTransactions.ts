@@ -18,7 +18,8 @@ export function useTransactions() {
         .from('transactions')
         .select('*')
         .eq('user_id', user.id)
-        .order('date', { ascending: false });
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       
@@ -35,6 +36,7 @@ export function useTransactions() {
         recurring_end_date: t.recurring_end_date ?? undefined,
         payment_type: t.payment_type ?? undefined,
         payment_description: t.payment_description ?? undefined,
+        credit_card_id: t.credit_card_id ?? undefined,
       })) as Transaction[];
     },
     enabled: !!user,
@@ -59,6 +61,7 @@ export function useTransactions() {
           recurring_end_date: transaction.recurring_end_date ?? null,
           payment_type: transaction.payment_type ?? null,
           payment_description: transaction.payment_description ?? null,
+          credit_card_id: transaction.credit_card_id ?? null,
         })
         .select()
         .single();
