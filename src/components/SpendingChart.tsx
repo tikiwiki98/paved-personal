@@ -5,6 +5,8 @@ import { Transaction, Category } from '@/types/budget';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { format, subMonths, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { SummaryRangeSelector, SummaryRange } from '@/components/SummaryRangeSelector';
+import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 
 interface SpendingChartProps {
   transactions: Transaction[];
@@ -24,18 +26,15 @@ const HISTORICAL_RANGES = [
 export function SpendingChart({ transactions, categories = [] }: SpendingChartProps) {
   const [showHistorical, setShowHistorical] = useState(false);
   const [historicalMonths, setHistoricalMonths] = useState(3);
+  const [range, setRange] = useState<SummaryRange>('mtd');
 
   const data = useMemo(() => {
-    const now = new Date();
-    const currentMonthStart = startOfMonth(now);
-    const currentMonthEnd = endOfMonth(now);
+    // Filter transactions by selected range
+    const filteredTransactions = filterTransactionsByRange(transactions, range);
 
-    // Current month expenses by category
-    const currentMonthExpenses = transactions
-      .filter((t) => {
-        const date = parseISO(t.date);
-        return t.type === 'expense' && isWithinInterval(date, { start: currentMonthStart, end: currentMonthEnd });
-      })
+    // Expenses by category within selected range
+    const rangeExpenses = filteredTransactions
+      .filter((t) => t.type === 'expense')
       .reduce((acc, t) => {
         acc[t.category] = (acc[t.category] || 0) + t.amount;
         return acc;
@@ -44,6 +43,7 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
     // Historical average if enabled
     let historicalAverages: Record<string, number> = {};
     if (showHistorical) {
+      const now = new Date();
       const historicalStart = startOfMonth(subMonths(now, historicalMonths));
       const historicalEnd = endOfMonth(subMonths(now, 1)); // Exclude current month
 
@@ -65,30 +65,33 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
 
     // Combine all categories
     const allCategories = new Set([
-      ...Object.keys(currentMonthExpenses),
+      ...Object.keys(rangeExpenses),
       ...Object.keys(historicalAverages),
     ]);
 
     return Array.from(allCategories)
       .map((name) => ({
         name,
-        current: currentMonthExpenses[name] || 0,
+        current: rangeExpenses[name] || 0,
         historical: historicalAverages[name] || 0,
       }))
       .filter((item) => item.current > 0 || item.historical > 0)
       .sort((a, b) => b.current - a.current)
       .slice(0, 8);
-  }, [transactions, categories, showHistorical, historicalMonths]);
+  }, [transactions, categories, showHistorical, historicalMonths, range]);
 
-  const currentMonth = format(new Date(), 'MMMM');
+  const rangeLabel = range === 'mtd' ? format(new Date(), 'MMMM') : 
+                     range === 'ytd' ? format(new Date(), 'yyyy') :
+                     range.toUpperCase();
 
   if (data.length === 0) {
     return (
       <Card className="gradient-card border-border/50 p-6 shadow-card animate-slide-up" style={{ animationDelay: '0.3s' }}>
         <h3 className="text-lg font-semibold text-foreground mb-4">Spend by Category</h3>
         <div className="h-64 flex items-center justify-center text-muted-foreground">
-          No expense data for {currentMonth}
+          No expense data for {rangeLabel}
         </div>
+        <SummaryRangeSelector value={range} onChange={setRange} />
       </Card>
     );
   }
@@ -98,7 +101,7 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground">Spend by Category</h3>
-          <span className="text-sm text-muted-foreground">{currentMonth}</span>
+          <span className="text-sm text-muted-foreground">{rangeLabel}</span>
         </div>
         
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -205,6 +208,8 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      <SummaryRangeSelector value={range} onChange={setRange} />
     </Card>
   );
 }

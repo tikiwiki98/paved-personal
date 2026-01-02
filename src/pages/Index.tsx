@@ -1,8 +1,7 @@
-import { useMemo, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BalanceCard } from '@/components/BalanceCard';
 import { TransactionList } from '@/components/TransactionList';
-
 import { SpendingChart } from '@/components/SpendingChart';
 import { AddTransactionModal } from '@/components/AddTransactionModal';
 import { AppLayout } from '@/components/AppLayout';
@@ -23,20 +22,6 @@ const Index = () => {
       navigate('/auth', { replace: true });
     }
   }, [user, authLoading, navigate]);
-
-  const summary = useMemo(() => {
-    const totalIncome = transactions
-      .filter((t) => t.type === 'income')
-      .reduce((acc, t) => acc + t.amount, 0);
-    const totalExpenses = transactions
-      .filter((t) => t.type === 'expense')
-      .reduce((acc, t) => acc + t.amount, 0);
-    return {
-      totalBalance: totalIncome - totalExpenses,
-      totalIncome,
-      totalExpenses,
-    };
-  }, [transactions]);
 
   const handleAddTransaction = (newTransaction: Omit<typeof transactions[0], 'id'>) => {
     addTransaction(newTransaction);
@@ -60,11 +45,7 @@ const Index = () => {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Left Column - Balance & Chart */}
           <div className="lg:col-span-2 space-y-6">
-            <BalanceCard
-              totalBalance={summary.totalBalance}
-              totalIncome={summary.totalIncome}
-              totalExpenses={summary.totalExpenses}
-            />
+            <BalanceCard transactions={transactions} />
             <SpendingChart transactions={transactions} categories={categories} />
             <TransactionList 
               transactions={transactions} 

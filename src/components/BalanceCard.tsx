@@ -1,14 +1,36 @@
+import { useMemo, useState } from 'react';
 import { ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Transaction } from '@/types/budget';
+import { SummaryRangeSelector, SummaryRange } from '@/components/SummaryRangeSelector';
+import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 
 interface BalanceCardProps {
-  totalBalance: number;
-  totalIncome: number;
-  totalExpenses: number;
+  transactions: Transaction[];
 }
 
-export function BalanceCard({ totalBalance, totalIncome, totalExpenses }: BalanceCardProps) {
-  const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome * 100).toFixed(1) : 0;
+export function BalanceCard({ transactions }: BalanceCardProps) {
+  const [range, setRange] = useState<SummaryRange>('mtd');
+
+  const { totalBalance, totalIncome, totalExpenses, savingsRate } = useMemo(() => {
+    const filtered = filterTransactionsByRange(transactions, range);
+    
+    const income = filtered
+      .filter((t) => t.type === 'income')
+      .reduce((acc, t) => acc + t.amount, 0);
+    const expenses = filtered
+      .filter((t) => t.type === 'expense')
+      .reduce((acc, t) => acc + t.amount, 0);
+    const balance = income - expenses;
+    const rate = income > 0 ? ((income - expenses) / income * 100).toFixed(1) : '0';
+
+    return {
+      totalBalance: balance,
+      totalIncome: income,
+      totalExpenses: expenses,
+      savingsRate: rate,
+    };
+  }, [transactions, range]);
 
   return (
     <Card className="gradient-card border-border/50 p-6 shadow-card animate-slide-up">
@@ -55,6 +77,8 @@ export function BalanceCard({ totalBalance, totalIncome, totalExpenses }: Balanc
           </p>
         </div>
       </div>
+
+      <SummaryRangeSelector value={range} onChange={setRange} />
     </Card>
   );
 }
