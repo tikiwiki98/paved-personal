@@ -52,6 +52,10 @@ export type Database = {
           date: string
           description: string
           id: string
+          is_recurring: boolean | null
+          recurring_end_date: string | null
+          recurring_frequency: string | null
+          recurring_start_date: string | null
           type: string
           user_id: string
         }
@@ -62,6 +66,10 @@ export type Database = {
           date?: string
           description: string
           id?: string
+          is_recurring?: boolean | null
+          recurring_end_date?: string | null
+          recurring_frequency?: string | null
+          recurring_start_date?: string | null
           type: string
           user_id: string
         }
@@ -72,6 +80,10 @@ export type Database = {
           date?: string
           description?: string
           id?: string
+          is_recurring?: boolean | null
+          recurring_end_date?: string | null
+          recurring_frequency?: string | null
+          recurring_start_date?: string | null
           type?: string
           user_id?: string
         }
