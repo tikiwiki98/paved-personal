@@ -29,6 +29,10 @@ export function useTransactions() {
         category: t.category,
         description: t.description,
         date: t.date,
+        is_recurring: t.is_recurring ?? false,
+        recurring_frequency: t.recurring_frequency ?? undefined,
+        recurring_start_date: t.recurring_start_date ?? undefined,
+        recurring_end_date: t.recurring_end_date ?? undefined,
       })) as Transaction[];
     },
     enabled: !!user,
@@ -47,6 +51,10 @@ export function useTransactions() {
           category: transaction.category,
           description: transaction.description,
           date: transaction.date,
+          is_recurring: transaction.is_recurring ?? false,
+          recurring_frequency: transaction.recurring_frequency ?? null,
+          recurring_start_date: transaction.recurring_start_date ?? null,
+          recurring_end_date: transaction.recurring_end_date ?? null,
         })
         .select()
         .single();
