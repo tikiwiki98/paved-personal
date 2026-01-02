@@ -6,6 +6,8 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('lookup-card-benefits invoked with method:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
