@@ -9,6 +9,8 @@ export interface Transaction {
   recurring_frequency?: string;
   recurring_start_date?: string;
   recurring_end_date?: string | null;
+  payment_type?: string | null;
+  payment_description?: string | null;
 }
 
 export interface Category {
