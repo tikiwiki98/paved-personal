@@ -19,7 +19,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["DM Sans", "sans-serif"],
+        sans: ["Figtree", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       colors: {
