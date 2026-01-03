@@ -168,8 +168,14 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
   };
 
   const handleAddNewCategory = () => {
-    if (newCategoryInput.trim()) {
-      setCategory(newCategoryInput.trim());
+    const trimmed = newCategoryInput.trim();
+    if (trimmed) {
+      // Case-insensitive check for existing category
+      const existingCategory = allCategoryOptions.find(
+        cat => cat.toLowerCase() === trimmed.toLowerCase()
+      );
+      // Use existing category if found (preserves original casing), otherwise use new input
+      setCategory(existingCategory || trimmed);
       setNewCategoryInput('');
       setCategoryDropdownType(null);
     }
@@ -270,7 +276,13 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
             {/* Category Selection Buttons */}
             {!category && (
               <div className="flex gap-2">
-                <Popover open={categoryDropdownType === 'recent'} onOpenChange={(open) => setCategoryDropdownType(open ? 'recent' : null)}>
+                <Popover open={categoryDropdownType === 'recent'} onOpenChange={(open) => {
+                  if (!open && categoryDropdownType === 'recent') {
+                    setCategoryDropdownType(null);
+                  } else if (open) {
+                    setCategoryDropdownType('recent');
+                  }
+                }}>
                   <PopoverTrigger asChild>
                     <Button
                       type="button"
@@ -281,7 +293,11 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                       Recent
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-56 p-2 bg-card border-border" align="start">
+                  <PopoverContent 
+                    className="w-56 p-2 bg-card border-border max-h-64 overflow-y-auto overscroll-contain touch-pan-y" 
+                    align="start"
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                  >
                     <div className="space-y-1">
                       {recentCategories.length > 0 ? (
                         recentCategories.map((cat) => (
@@ -311,7 +327,13 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                   </PopoverContent>
                 </Popover>
 
-                <Popover open={categoryDropdownType === 'all'} onOpenChange={(open) => setCategoryDropdownType(open ? 'all' : null)}>
+                <Popover open={categoryDropdownType === 'all'} onOpenChange={(open) => {
+                  if (!open && categoryDropdownType === 'all') {
+                    setCategoryDropdownType(null);
+                  } else if (open) {
+                    setCategoryDropdownType('all');
+                  }
+                }}>
                   <PopoverTrigger asChild>
                     <Button
                       type="button"
@@ -322,7 +344,11 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                       All
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-56 p-2 bg-card border-border max-h-64 overflow-y-auto" align="start">
+                  <PopoverContent 
+                    className="w-56 p-2 bg-card border-border max-h-64 overflow-y-auto overscroll-contain touch-pan-y" 
+                    align="start"
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                  >
                     <div className="space-y-1">
                       {allCategoryOptions.map((cat) => (
                         <button
