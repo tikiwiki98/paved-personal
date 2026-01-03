@@ -294,13 +294,17 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-56 p-0 bg-card border-border flex flex-col max-h-64" 
+                    className="w-56 p-0 bg-card border-border" 
                     align="start"
                     onOpenAutoFocus={(e) => e.preventDefault()}
                   >
                     <div 
-                      className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1"
-                      style={{ WebkitOverflowScrolling: 'touch' }}
+                      className="overflow-y-auto p-2 space-y-1"
+                      style={{ 
+                        maxHeight: '200px',
+                        WebkitOverflowScrolling: 'touch',
+                        overscrollBehavior: 'contain'
+                      }}
                     >
                       {recentCategories.length > 0 ? (
                         recentCategories.map((cat) => (
@@ -349,13 +353,17 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-56 p-0 bg-card border-border flex flex-col max-h-64" 
+                    className="w-56 p-0 bg-card border-border" 
                     align="start"
                     onOpenAutoFocus={(e) => e.preventDefault()}
                   >
                     <div 
-                      className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1"
-                      style={{ WebkitOverflowScrolling: 'touch' }}
+                      className="overflow-y-auto p-2 space-y-1"
+                      style={{ 
+                        maxHeight: '200px',
+                        WebkitOverflowScrolling: 'touch',
+                        overscrollBehavior: 'contain'
+                      }}
                     >
                       {allCategoryOptions.map((cat) => (
                         <button
