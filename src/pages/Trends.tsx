@@ -12,6 +12,7 @@ import { CreditCardSpendingChart } from '@/components/charts/CreditCardSpendingC
 import { CardOptimizationInsight } from '@/components/CardOptimizationInsight';
 import { SummaryRangeSelector } from '@/components/SummaryRangeSelector';
 import { InsightCard } from '@/components/InsightCard';
+import { IncludeRentToggle } from '@/components/IncludeRentToggle';
 import { useTrendsInsight } from '@/hooks/useInsights';
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 import { Loader2, TrendingUp } from 'lucide-react';
@@ -23,7 +24,7 @@ const Trends = () => {
   const { transactions, isLoading: transactionsLoading } = useTransactions();
   const { categories, isLoading: categoriesLoading } = useCategories(transactions);
   const { creditCards, isLoading: cardsLoading } = useCreditCards();
-  const { range, setRange } = useTimeFrame();
+  const { range, setRange, filterRent } = useTimeFrame();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -32,8 +33,9 @@ const Trends = () => {
   }, [user, authLoading, navigate]);
 
   const filteredTransactions = useMemo(() => {
-    return filterTransactionsByRange(transactions, range);
-  }, [transactions, range]);
+    const rangeFiltered = filterTransactionsByRange(transactions, range);
+    return filterRent(rangeFiltered);
+  }, [transactions, range, filterRent]);
 
   const totalExpenses = useMemo(() => {
     return filteredTransactions
@@ -75,6 +77,7 @@ const Trends = () => {
               </p>
             </div>
           </div>
+          <IncludeRentToggle />
         </div>
 
         {/* Time Frame Selector - synced with Home page */}

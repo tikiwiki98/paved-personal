@@ -27,13 +27,16 @@ const HISTORICAL_RANGES = [
 ];
 
 export function SpendingChart({ transactions, categories = [] }: SpendingChartProps) {
-  const { range, setRange } = useTimeFrame();
+  const { range, setRange, filterRent } = useTimeFrame();
   const [showHistorical, setShowHistorical] = useState(false);
   const [historicalMonths, setHistoricalMonths] = useState(3);
 
+  // Apply rent filter to all transactions first
+  const rentFilteredTransactions = useMemo(() => filterRent(transactions), [transactions, filterRent]);
+
   const data = useMemo(() => {
     // Filter transactions by selected range
-    const filteredTransactions = filterTransactionsByRange(transactions, range);
+    const filteredTransactions = filterTransactionsByRange(rentFilteredTransactions, range);
 
     // Expenses by category within selected range
     const rangeExpenses = filteredTransactions
@@ -50,7 +53,7 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
       const historicalStart = startOfMonth(subMonths(now, historicalMonths));
       const historicalEnd = endOfMonth(subMonths(now, 1)); // Exclude current month
 
-      const historicalExpenses = transactions
+      const historicalExpenses = rentFilteredTransactions
         .filter((t) => {
           const date = parseISO(t.date);
           return t.type === 'expense' && isWithinInterval(date, { start: historicalStart, end: historicalEnd });
@@ -81,11 +84,11 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
       .filter((item) => item.current > 0 || item.historical > 0)
       .sort((a, b) => b.current - a.current)
       .slice(0, 8);
-  }, [transactions, categories, showHistorical, historicalMonths, range]);
+  }, [rentFilteredTransactions, categories, showHistorical, historicalMonths, range]);
 
   const filteredForInsight = useMemo(() => {
-    return filterTransactionsByRange(transactions, range);
-  }, [transactions, range]);
+    return filterTransactionsByRange(rentFilteredTransactions, range);
+  }, [rentFilteredTransactions, range]);
 
   const { message: insight } = useSpendingInsight(filteredForInsight, showHistorical, true);
 

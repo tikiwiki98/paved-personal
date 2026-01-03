@@ -5,6 +5,7 @@ import { TransactionList } from '@/components/TransactionList';
 import { SpendingChart } from '@/components/SpendingChart';
 import { AddTransactionModal } from '@/components/AddTransactionModal';
 import { AppLayout } from '@/components/AppLayout';
+import { IncludeRentToggle } from '@/components/IncludeRentToggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
@@ -42,6 +43,11 @@ const Index = () => {
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-6 md:py-8">
+        {/* Top Controls */}
+        <div className="flex justify-end mb-4">
+          <IncludeRentToggle />
+        </div>
+
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Left Column - Balance & Chart */}
           <div className="lg:col-span-2 space-y-6">
