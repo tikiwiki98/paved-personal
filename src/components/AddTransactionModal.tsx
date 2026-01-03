@@ -294,11 +294,14 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-56 p-2 bg-card border-border max-h-64 overflow-y-auto overscroll-contain touch-pan-y" 
+                    className="w-56 p-0 bg-card border-border flex flex-col" 
                     align="start"
                     onOpenAutoFocus={(e) => e.preventDefault()}
                   >
-                    <div className="space-y-1">
+                    <div 
+                      className="max-h-48 overflow-y-auto p-2 space-y-1"
+                      style={{ WebkitOverflowScrolling: 'touch' }}
+                    >
                       {recentCategories.length > 0 ? (
                         recentCategories.map((cat) => (
                           <button
@@ -313,7 +316,8 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                       ) : (
                         <p className="px-3 py-2 text-sm text-muted-foreground">No recent categories</p>
                       )}
-                      <div className="border-t border-border my-1" />
+                    </div>
+                    <div className="border-t border-border sticky bottom-0 bg-card p-2">
                       <button
                         type="button"
                         onClick={() => {
@@ -345,11 +349,14 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-56 p-2 bg-card border-border max-h-64 overflow-y-auto overscroll-contain touch-pan-y" 
+                    className="w-56 p-0 bg-card border-border flex flex-col" 
                     align="start"
                     onOpenAutoFocus={(e) => e.preventDefault()}
                   >
-                    <div className="space-y-1">
+                    <div 
+                      className="max-h-48 overflow-y-auto p-2 space-y-1"
+                      style={{ WebkitOverflowScrolling: 'touch' }}
+                    >
                       {allCategoryOptions.map((cat) => (
                         <button
                           key={cat}
@@ -360,7 +367,8 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                           {cat}
                         </button>
                       ))}
-                      <div className="border-t border-border my-1" />
+                    </div>
+                    <div className="border-t border-border sticky bottom-0 bg-card p-2">
                       <button
                         type="button"
                         onClick={() => {
