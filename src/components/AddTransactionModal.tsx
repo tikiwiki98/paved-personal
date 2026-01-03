@@ -294,12 +294,12 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-56 p-0 bg-card border-border flex flex-col" 
+                    className="w-56 p-0 bg-card border-border flex flex-col max-h-64" 
                     align="start"
                     onOpenAutoFocus={(e) => e.preventDefault()}
                   >
                     <div 
-                      className="max-h-48 overflow-y-auto p-2 space-y-1"
+                      className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1"
                       style={{ WebkitOverflowScrolling: 'touch' }}
                     >
                       {recentCategories.length > 0 ? (
@@ -349,12 +349,12 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-56 p-0 bg-card border-border flex flex-col" 
+                    className="w-56 p-0 bg-card border-border flex flex-col max-h-64" 
                     align="start"
                     onOpenAutoFocus={(e) => e.preventDefault()}
                   >
                     <div 
-                      className="max-h-48 overflow-y-auto p-2 space-y-1"
+                      className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1"
                       style={{ WebkitOverflowScrolling: 'touch' }}
                     >
                       {allCategoryOptions.map((cat) => (
