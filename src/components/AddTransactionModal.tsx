@@ -1,14 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, ArrowUpRight, ArrowDownRight, Repeat, CalendarIcon, CreditCard } from 'lucide-react';
+import { Plus, ArrowUpRight, ArrowDownRight, Repeat, CalendarIcon, CreditCard, Clock, List } from 'lucide-react';
 import { Transaction, Category } from '@/types/budget';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
@@ -45,7 +44,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !category || !description) return;
+    if (!amount || !category) return; // Description is now optional
 
     // If adding a new credit card, create it first
     let creditCardId: string | null = null;
@@ -108,23 +107,64 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
     setOpen(false);
   };
 
-  // Merge predefined categories with custom categories from past transactions
-  const categoryOptions = (() => {
+  // State for category selection UI
+  const [categoryDropdownType, setCategoryDropdownType] = useState<'recent' | 'all' | 'new' | null>(null);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+
+  // Get all category options (alphabetically sorted)
+  const allCategoryOptions = useMemo(() => {
     if (type === 'income') {
       const customIncomeCategories = transactions
         .filter(t => t.type === 'income')
         .map(t => t.category)
         .filter(cat => !incomeCategories.includes(cat));
-      return [...new Set([...incomeCategories, ...customIncomeCategories])];
+      return [...new Set([...incomeCategories, ...customIncomeCategories])].sort((a, b) => 
+        a.toLowerCase().localeCompare(b.toLowerCase())
+      );
     } else {
       const predefinedExpense = categories.map((c) => c.name);
       const customExpenseCategories = transactions
         .filter(t => t.type === 'expense')
         .map(t => t.category)
         .filter(cat => !predefinedExpense.includes(cat));
-      return [...new Set([...predefinedExpense, ...customExpenseCategories])];
+      return [...new Set([...predefinedExpense, ...customExpenseCategories])].sort((a, b) => 
+        a.toLowerCase().localeCompare(b.toLowerCase())
+      );
     }
-  })();
+  }, [type, categories, transactions]);
+
+  // Get recent categories (last 5 used, most recent first)
+  const recentCategories = useMemo(() => {
+    const relevantTransactions = transactions
+      .filter(t => t.type === type)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    const seen = new Set<string>();
+    const recent: string[] = [];
+    
+    for (const t of relevantTransactions) {
+      if (!seen.has(t.category) && recent.length < 5) {
+        seen.add(t.category);
+        recent.push(t.category);
+      }
+      if (recent.length >= 5) break;
+    }
+    
+    return recent;
+  }, [transactions, type]);
+
+  const handleSelectCategory = (cat: string) => {
+    setCategory(cat);
+    setCategoryDropdownType(null);
+  };
+
+  const handleAddNewCategory = () => {
+    if (newCategoryInput.trim()) {
+      setCategory(newCategoryInput.trim());
+      setNewCategoryInput('');
+      setCategoryDropdownType(null);
+    }
+  };
 
   const defaultTrigger = (
     <Button size="lg" className="gap-2 shadow-glow">
@@ -195,59 +235,154 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
             </div>
           </div>
 
-          {/* Category Combobox */}
+          {/* Category Selection - Two Buttons */}
           <div className="space-y-2">
-            <Label className="text-foreground">Category</Label>
-            <Popover>
-              <PopoverTrigger asChild>
+            <Label className="text-foreground">Category *</Label>
+            
+            {/* Selected Category Display */}
+            {category && (
+              <div className="flex items-center justify-between p-3 bg-secondary rounded-lg border border-border">
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-primary" />
+                  <span className="font-medium">{category}</span>
+                </div>
                 <Button
-                  variant="outline"
-                  role="combobox"
-                  className="w-full justify-between bg-secondary border-border font-normal"
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCategory('')}
+                  className="text-muted-foreground hover:text-foreground h-auto py-1 px-2"
                 >
-                  {category || "Select or type a category"}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  Change
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0 bg-card border-border" align="start">
-                <Command className="bg-card">
-                  <CommandInput 
-                    placeholder="Search or type custom..." 
-                    value={category}
-                    onValueChange={setCategory}
-                    className="bg-card"
-                  />
-                  <CommandList>
-                    <CommandEmpty className="py-2 px-4 text-sm text-muted-foreground">
-                      Press enter to use "{category}"
-                    </CommandEmpty>
-                    <CommandGroup>
-                      {categoryOptions.map((cat) => (
-                        <CommandItem
+              </div>
+            )}
+
+            {/* Category Selection Buttons */}
+            {!category && (
+              <div className="flex gap-2">
+                <Popover open={categoryDropdownType === 'recent'} onOpenChange={(open) => setCategoryDropdownType(open ? 'recent' : null)}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1 gap-2 bg-secondary border-border"
+                    >
+                      <Clock className="w-4 h-4" />
+                      Recent
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-2 bg-card border-border" align="start">
+                    <div className="space-y-1">
+                      {recentCategories.length > 0 ? (
+                        recentCategories.map((cat) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => handleSelectCategory(cat)}
+                            className="w-full text-left px-3 py-2 rounded-md hover:bg-secondary text-sm transition-colors"
+                          >
+                            {cat}
+                          </button>
+                        ))
+                      ) : (
+                        <p className="px-3 py-2 text-sm text-muted-foreground">No recent categories</p>
+                      )}
+                      <div className="border-t border-border my-1" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCategoryDropdownType('new');
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-md hover:bg-secondary text-sm text-primary font-medium transition-colors"
+                      >
+                        + Add new
+                      </button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                <Popover open={categoryDropdownType === 'all'} onOpenChange={(open) => setCategoryDropdownType(open ? 'all' : null)}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1 gap-2 bg-secondary border-border"
+                    >
+                      <List className="w-4 h-4" />
+                      All
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-2 bg-card border-border max-h-64 overflow-y-auto" align="start">
+                    <div className="space-y-1">
+                      {allCategoryOptions.map((cat) => (
+                        <button
                           key={cat}
-                          value={cat}
-                          onSelect={(value) => setCategory(value)}
-                          className="cursor-pointer"
+                          type="button"
+                          onClick={() => handleSelectCategory(cat)}
+                          className="w-full text-left px-3 py-2 rounded-md hover:bg-secondary text-sm transition-colors"
                         >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              category === cat ? "opacity-100" : "opacity-0"
-                            )}
-                          />
                           {cat}
-                        </CommandItem>
+                        </button>
                       ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+                      <div className="border-t border-border my-1" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCategoryDropdownType('new');
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-md hover:bg-secondary text-sm text-primary font-medium transition-colors"
+                      >
+                        + Add new
+                      </button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+
+            {/* Add New Category Input */}
+            {categoryDropdownType === 'new' && !category && (
+              <div className="flex gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <Input
+                  placeholder="Enter new category name"
+                  value={newCategoryInput}
+                  onChange={(e) => setNewCategoryInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddNewCategory();
+                    }
+                  }}
+                  className="flex-1 bg-secondary border-border"
+                  autoFocus
+                />
+                <Button
+                  type="button"
+                  onClick={handleAddNewCategory}
+                  disabled={!newCategoryInput.trim()}
+                  size="sm"
+                >
+                  Add
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setCategoryDropdownType(null);
+                    setNewCategoryInput('');
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
           </div>
 
-          {/* Description Input */}
+          {/* Description Input (Optional) */}
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-foreground">Description</Label>
+            <Label htmlFor="description" className="text-foreground">Description <span className="text-muted-foreground text-xs">(optional)</span></Label>
             <Input
               id="description"
               placeholder="Enter a description"
