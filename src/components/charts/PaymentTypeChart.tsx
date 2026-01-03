@@ -7,8 +7,8 @@ interface PaymentTypeChartProps {
   transactions: Transaction[];
 }
 
-// Consistent blue-toned color for all bars (matching Home page)
-const BAR_COLOR = 'hsl(195, 80%, 50%)';
+// Use expense color for expense-only charts (darker blue)
+const EXPENSE_COLOR = 'hsl(220, 60%, 45%)';
 
 const PAYMENT_LABELS: Record<string, string> = {
   'credit_card': 'Credit Card',
@@ -92,7 +92,7 @@ export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
             />
             <Bar 
               dataKey="value" 
-              fill={BAR_COLOR}
+              fill={EXPENSE_COLOR}
               radius={[4, 4, 0, 0]}
               activeBar={false}
             />

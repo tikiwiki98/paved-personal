@@ -8,8 +8,8 @@ interface CategoryBarChartProps {
   categories: Category[];
 }
 
-// Consistent blue-toned color for all bars (matching Home page)
-const BAR_COLOR = 'hsl(195, 80%, 50%)';
+// Use expense color for expense-only charts (darker blue)
+const EXPENSE_COLOR = 'hsl(220, 60%, 45%)';
 
 export function CategoryBarChart({ transactions, categories }: CategoryBarChartProps) {
   const data = useMemo(() => {
@@ -81,7 +81,7 @@ export function CategoryBarChart({ transactions, categories }: CategoryBarChartP
             />
             <Bar 
               dataKey="value" 
-              fill={BAR_COLOR}
+              fill={EXPENSE_COLOR}
               radius={[0, 4, 4, 0]} 
               barSize={20}
               activeBar={false}

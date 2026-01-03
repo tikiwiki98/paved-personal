@@ -16,8 +16,8 @@ interface SpendingChartProps {
   categories?: Category[];
 }
 
-// Consistent blue-toned color for all bars
-const BAR_COLOR = 'hsl(195, 80%, 50%)';
+// Use expense color for expense-only charts (darker blue)
+const EXPENSE_COLOR = 'hsl(220, 60%, 45%)';
 
 const HISTORICAL_RANGES = [
   { label: '1m', value: 1 },
@@ -154,11 +154,11 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
         {showHistorical && (
           <div className="flex gap-4 text-xs">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-accent" />
+              <div className="w-3 h-3 rounded-sm bg-expense" />
               <span className="text-muted-foreground">Current</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-muted-foreground/40" />
+              <div className="w-3 h-3 rounded-sm bg-expense/40" />
               <span className="text-muted-foreground">Avg ({historicalMonths}m)</span>
             </div>
           </div>
@@ -206,7 +206,7 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
             />
             <Bar 
               dataKey="current" 
-              fill={BAR_COLOR}
+              fill={EXPENSE_COLOR}
               radius={[0, 4, 4, 0]} 
               barSize={showHistorical ? 12 : 20}
               activeBar={false}
@@ -214,7 +214,7 @@ export function SpendingChart({ transactions, categories = [] }: SpendingChartPr
             {showHistorical && (
               <Bar 
                 dataKey="historical" 
-                fill={BAR_COLOR}
+                fill={EXPENSE_COLOR}
                 radius={[0, 4, 4, 0]} 
                 barSize={12} 
                 opacity={0.35}
