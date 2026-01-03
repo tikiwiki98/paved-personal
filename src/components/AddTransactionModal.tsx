@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { useCreditCards } from '@/hooks/useCreditCards';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface AddTransactionModalProps {
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
@@ -298,29 +299,24 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                     align="start"
                     onOpenAutoFocus={(e) => e.preventDefault()}
                   >
-                    <div 
-                      className="overflow-y-auto p-2 space-y-1"
-                      style={{ 
-                        maxHeight: '200px',
-                        WebkitOverflowScrolling: 'touch',
-                        overscrollBehavior: 'contain'
-                      }}
-                    >
-                      {recentCategories.length > 0 ? (
-                        recentCategories.map((cat) => (
-                          <button
-                            key={cat}
-                            type="button"
-                            onClick={() => handleSelectCategory(cat)}
-                            className="w-full text-left px-3 py-2 rounded-md hover:bg-secondary text-sm transition-colors"
-                          >
-                            {cat}
-                          </button>
-                        ))
-                      ) : (
-                        <p className="px-3 py-2 text-sm text-muted-foreground">No recent categories</p>
-                      )}
-                    </div>
+                    <ScrollArea className="h-[200px]">
+                      <div className="p-2 space-y-1">
+                        {recentCategories.length > 0 ? (
+                          recentCategories.map((cat) => (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={() => handleSelectCategory(cat)}
+                              className="w-full text-left px-3 py-2 rounded-md hover:bg-secondary text-sm transition-colors"
+                            >
+                              {cat}
+                            </button>
+                          ))
+                        ) : (
+                          <p className="px-3 py-2 text-sm text-muted-foreground">No recent categories</p>
+                        )}
+                      </div>
+                    </ScrollArea>
                     <div className="border-t border-border sticky bottom-0 bg-card p-2">
                       <button
                         type="button"
@@ -357,25 +353,20 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                     align="start"
                     onOpenAutoFocus={(e) => e.preventDefault()}
                   >
-                    <div 
-                      className="overflow-y-auto p-2 space-y-1"
-                      style={{ 
-                        maxHeight: '200px',
-                        WebkitOverflowScrolling: 'touch',
-                        overscrollBehavior: 'contain'
-                      }}
-                    >
-                      {allCategoryOptions.map((cat) => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => handleSelectCategory(cat)}
-                          className="w-full text-left px-3 py-2 rounded-md hover:bg-secondary text-sm transition-colors"
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
+                    <ScrollArea className="h-[200px]">
+                      <div className="p-2 space-y-1">
+                        {allCategoryOptions.map((cat) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => handleSelectCategory(cat)}
+                            className="w-full text-left px-3 py-2 rounded-md hover:bg-secondary text-sm transition-colors"
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    </ScrollArea>
                     <div className="border-t border-border sticky bottom-0 bg-card p-2">
                       <button
                         type="button"
