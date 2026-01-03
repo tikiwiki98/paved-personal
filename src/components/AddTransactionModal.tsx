@@ -41,10 +41,18 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
   const [selectedCreditCardId, setSelectedCreditCardId] = useState<string>('');
   const [newCardName, setNewCardName] = useState('');
   const [isAddingNewCard, setIsAddingNewCard] = useState(false);
+  const [validationError, setValidationError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !category) return; // Description is now optional
+    
+    // Validate all required fields
+    if (!amount || !category || !description.trim()) {
+      setValidationError('Please complete all required fields.');
+      return;
+    }
+    
+    setValidationError('');
 
     // If adding a new credit card, create it first
     let creditCardId: string | null = null;
@@ -104,6 +112,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
     setSelectedCreditCardId('');
     setNewCardName('');
     setIsAddingNewCard(false);
+    setValidationError('');
     setOpen(false);
   };
 
@@ -219,7 +228,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
 
           {/* Amount Input */}
           <div className="space-y-2">
-            <Label htmlFor="amount" className="text-foreground">Amount</Label>
+            <Label htmlFor="amount" className="text-foreground">Amount <span className="text-destructive">*</span></Label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-lg">$</span>
               <Input
@@ -237,7 +246,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
 
           {/* Category Selection - Two Buttons */}
           <div className="space-y-2">
-            <Label className="text-foreground">Category *</Label>
+            <Label className="text-foreground">Category <span className="text-destructive">*</span></Label>
             
             {/* Selected Category Display */}
             {category && (
@@ -380,26 +389,26 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
             )}
           </div>
 
-          {/* Description Input (Optional) */}
-          <div className="space-y-2">
-            <Label htmlFor="description" className="text-foreground">Description <span className="text-muted-foreground text-xs">(optional)</span></Label>
-            <Input
-              id="description"
-              placeholder="Enter a description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="bg-secondary border-border"
-            />
-          </div>
-
           {/* Date Input */}
           <div className="space-y-2">
-            <Label htmlFor="date" className="text-foreground">Date</Label>
+            <Label htmlFor="date" className="text-foreground">Date <span className="text-destructive">*</span></Label>
             <Input
               id="date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              className="bg-secondary border-border"
+            />
+          </div>
+
+          {/* Description Input */}
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-foreground">Description <span className="text-destructive">*</span></Label>
+            <Input
+              id="description"
+              placeholder="Enter a description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               className="bg-secondary border-border"
             />
           </div>
@@ -619,6 +628,13 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
               </div>
             )}
           </div>
+
+          {/* Validation Error Message */}
+          {validationError && (
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-sm text-destructive">{validationError}</p>
+            </div>
+          )}
 
           {/* Submit Button */}
           <Button
