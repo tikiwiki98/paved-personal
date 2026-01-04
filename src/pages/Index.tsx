@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BalanceCard } from '@/components/BalanceCard';
 import { TransactionList } from '@/components/TransactionList';
-import { SpendingChart } from '@/components/SpendingChart';
+import { SpendingOverTimeChart } from '@/components/SpendingOverTimeChart';
 import { AddTransactionModal } from '@/components/AddTransactionModal';
 import { AppLayout } from '@/components/AppLayout';
 import { IncludeRentToggle } from '@/components/IncludeRentToggle';
@@ -52,7 +52,7 @@ const Index = () => {
           {/* Left Column - Balance & Chart */}
           <div className="lg:col-span-2 space-y-6">
             <BalanceCard transactions={transactions} />
-            <SpendingChart transactions={transactions} categories={categories} />
+            <SpendingOverTimeChart transactions={transactions} />
             <TransactionList 
               transactions={transactions} 
               categories={categories}

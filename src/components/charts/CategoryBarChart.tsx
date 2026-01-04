@@ -32,7 +32,7 @@ export function CategoryBarChart({ transactions, categories }: CategoryBarChartP
   if (data.length === 0) {
     return (
       <Card className="gradient-card border-border/50 p-6 shadow-card">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Top Categories</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-4">Spend by Category</h3>
         <div className="h-64 flex items-center justify-center text-muted-foreground">
           No expense data available
         </div>
@@ -42,7 +42,7 @@ export function CategoryBarChart({ transactions, categories }: CategoryBarChartP
 
   return (
     <Card className="gradient-card border-border/50 p-6 shadow-card">
-      <h3 className="text-lg font-semibold text-foreground mb-4">Top Categories</h3>
+      <h3 className="text-lg font-semibold text-foreground mb-4">Spend by Category</h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 70, bottom: 5 }}>
