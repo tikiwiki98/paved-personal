@@ -1,29 +1,38 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card } from '@/components/ui/card';
 import { Transaction } from '@/types/budget';
+import { ChartTooltipWithDrilldown } from './ChartTooltipWithDrilldown';
+import { ChartDrilldownSheet } from './ChartDrilldownSheet';
 
 interface PaymentTypeChartProps {
   transactions: Transaction[];
 }
 
-// Use expense color for expense-only charts (darker blue)
 const EXPENSE_COLOR = 'hsl(220, 60%, 45%)';
 
 const PAYMENT_LABELS: Record<string, string> = {
-  'credit_card': 'Credit Card',
-  'debit_card': 'Debit Card',
-  'cash': 'Cash',
-  'venmo': 'Venmo',
-  'paypal': 'PayPal',
-  'crypto': 'Crypto',
-  'bank_transfer': 'Bank Transfer',
-  'zelle': 'Zelle',
-  'check': 'Check',
-  'other': 'Other',
+  credit_card: 'Credit Card',
+  debit_card: 'Debit Card',
+  cash: 'Cash',
+  venmo: 'Venmo',
+  paypal: 'PayPal',
+  crypto: 'Crypto',
+  bank_transfer: 'Bank Transfer',
+  zelle: 'Zelle',
+  check: 'Check',
+  other: 'Other',
 };
 
+const REVERSE_LABELS: Record<string, string> = Object.entries(PAYMENT_LABELS).reduce(
+  (acc, [key, val]) => ({ ...acc, [val]: key }),
+  {}
+);
+
 export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
+  const [drilldownOpen, setDrilldownOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+
   const data = useMemo(() => {
     const expensesByPaymentType = transactions
       .filter((t) => t.type === 'expense' && t.payment_type)
@@ -36,10 +45,24 @@ export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
     return Object.entries(expensesByPaymentType)
       .map(([type, value]) => ({
         name: PAYMENT_LABELS[type] || type,
+        rawType: type,
         value,
       }))
       .sort((a, b) => b.value - a.value);
   }, [transactions]);
+
+  const drilldownTransactions = useMemo(() => {
+    if (!selectedType) return [];
+    const rawType = REVERSE_LABELS[selectedType] || selectedType;
+    return transactions.filter(
+      (t) => t.type === 'expense' && t.payment_type === rawType
+    );
+  }, [transactions, selectedType]);
+
+  const handleDrilldown = useCallback((label: string) => {
+    setSelectedType(label);
+    setDrilldownOpen(true);
+  }, []);
 
   if (data.length === 0) {
     return (
@@ -53,52 +76,55 @@ export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
   }
 
   return (
-    <Card className="gradient-card border-border/50 p-6 shadow-card">
-      <h3 className="text-lg font-semibold text-foreground mb-4">Spending by Payment Type</h3>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 10, right: 20, left: 20, bottom: 30 }}>
-            <XAxis
-              dataKey="name"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: 'hsl(215, 15%, 55%)', fontSize: 11 }}
-              angle={-30}
-              textAnchor="end"
-              height={50}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: 'hsl(215, 15%, 55%)', fontSize: 12 }}
-              tickFormatter={(value) => {
-                if (value === 0) return '$0';
-                if (value >= 1000) return `$${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k`;
-                return `$${Math.round(value / 100) * 100}`;
-              }}
-              tickCount={5}
-              allowDecimals={false}
-            />
-            <Tooltip
-              cursor={false}
-              contentStyle={{
-                backgroundColor: 'hsl(220, 28%, 12%)',
-                border: '1px solid hsl(220, 20%, 18%)',
-                borderRadius: '12px',
-                padding: '12px',
-              }}
-              labelStyle={{ color: 'hsl(210, 20%, 96%)' }}
-              formatter={(value: number) => [`$${value.toLocaleString()}`, 'Amount']}
-            />
-            <Bar 
-              dataKey="value" 
-              fill={EXPENSE_COLOR}
-              radius={[4, 4, 0, 0]}
-              activeBar={false}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </Card>
+    <>
+      <Card className="gradient-card border-border/50 p-6 shadow-card">
+        <h3 className="text-lg font-semibold text-foreground mb-4">Spending by Payment Type</h3>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 10, right: 20, left: 20, bottom: 30 }}>
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'hsl(215, 15%, 55%)', fontSize: 11 }}
+                angle={-30}
+                textAnchor="end"
+                height={50}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'hsl(215, 15%, 55%)', fontSize: 12 }}
+                tickFormatter={(value) => {
+                  if (value === 0) return '$0';
+                  if (value >= 1000) return `$${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k`;
+                  return `$${Math.round(value / 100) * 100}`;
+                }}
+                tickCount={5}
+                allowDecimals={false}
+              />
+              <Tooltip
+                cursor={false}
+                content={<ChartTooltipWithDrilldown onDrilldown={handleDrilldown} />}
+                wrapperStyle={{ pointerEvents: 'auto' }}
+              />
+              <Bar 
+                dataKey="value" 
+                fill={EXPENSE_COLOR}
+                radius={[4, 4, 0, 0]}
+                activeBar={false}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+
+      <ChartDrilldownSheet
+        open={drilldownOpen}
+        onOpenChange={setDrilldownOpen}
+        title={`${selectedType} Transactions`}
+        transactions={drilldownTransactions}
+      />
+    </>
   );
 }
