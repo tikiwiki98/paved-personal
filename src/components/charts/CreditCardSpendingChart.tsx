@@ -23,27 +23,23 @@ export function CreditCardSpendingChart({
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
 
   const data = useMemo(() => {
-    const expensesByCard = transactions
-      .filter((t) => t.type === 'expense' && t.payment_type === 'credit_card' && t.payment_description)
+    // Group by credit_card_id for accurate aggregation
+    const expensesByCardId = transactions
+      .filter((t) => t.type === 'expense' && t.credit_card_id)
       .reduce((acc, t) => {
-        const cardName = t.payment_description || 'Unknown Card';
-        acc[cardName] = (acc[cardName] || 0) + t.amount;
+        const cardId = t.credit_card_id!;
+        acc[cardId] = (acc[cardId] || 0) + t.amount;
         return acc;
       }, {} as Record<string, number>);
 
-    return Object.entries(expensesByCard)
-      .map(([name, value]) => {
-        const matchedCard = creditCards.find(
-          (c) =>
-            c.card_name.toLowerCase() === name.toLowerCase() ||
-            c.card_type?.toLowerCase() === name.toLowerCase()
-        );
+    return Object.entries(expensesByCardId)
+      .map(([cardId, value]) => {
+        const matchedCard = creditCards.find((c) => c.id === cardId);
 
         return {
-          name: matchedCard?.card_type || name,
-          rawName: name,
+          name: matchedCard?.card_name || 'Unknown Card',
+          cardId,
           value,
-          cardId: matchedCard?.id,
         };
       })
       .sort((a, b) => b.value - a.value);
@@ -52,12 +48,9 @@ export function CreditCardSpendingChart({
   const drilldownTransactions = useMemo(() => {
     if (!selectedCard) return [];
     const cardData = data.find((d) => d.name === selectedCard);
-    const rawName = cardData?.rawName || selectedCard;
+    if (!cardData) return [];
     return transactions.filter(
-      (t) =>
-        t.type === 'expense' &&
-        t.payment_type === 'credit_card' &&
-        t.payment_description?.toLowerCase() === rawName.toLowerCase()
+      (t) => t.type === 'expense' && t.credit_card_id === cardData.cardId
     );
   }, [transactions, selectedCard, data]);
 
