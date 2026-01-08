@@ -7,19 +7,19 @@ export function getDateRangeStart(range: TimeFrameRange): Date {
   
   switch (range) {
     case '1m':
-      return subMonths(now, 1);
+      return startOfDay(subMonths(now, 1));
     case '3m':
-      return subMonths(now, 3);
+      return startOfDay(subMonths(now, 3));
     case '6m':
-      return subMonths(now, 6);
+      return startOfDay(subMonths(now, 6));
     case '1y':
-      return subYears(now, 1);
+      return startOfDay(subYears(now, 1));
     case 'mtd':
       return startOfMonth(now);
     case 'ytd':
       return startOfYear(now);
     default:
-      return subMonths(now, 1);
+      return startOfDay(subMonths(now, 1));
   }
 }
 
