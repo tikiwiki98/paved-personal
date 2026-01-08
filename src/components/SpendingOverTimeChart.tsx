@@ -91,7 +91,7 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
         <div className="h-64 flex items-center justify-center text-muted-foreground">
           No expense data for {rangeLabel}
         </div>
-        <SummaryRangeSelector value={range} onChange={setRange} />
+        <SummaryRangeSelector value={range} onChange={setRange} transactions={transactions} />
       </Card>
     );
   }
@@ -156,7 +156,7 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
         </ResponsiveContainer>
       </div>
 
-      <SummaryRangeSelector value={range} onChange={setRange} />
+      <SummaryRangeSelector value={range} onChange={setRange} transactions={transactions} />
     </Card>
   );
 }

@@ -82,7 +82,7 @@ export function BalanceCard({ transactions }: BalanceCardProps) {
         </div>
       </div>
 
-      <SummaryRangeSelector value={range} onChange={setRange} />
+      <SummaryRangeSelector value={range} onChange={setRange} transactions={transactions} />
     </Card>
   );
 }

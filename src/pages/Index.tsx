@@ -9,6 +9,7 @@ import { IncludeRentToggle } from '@/components/IncludeRentToggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
+import { useTimeFrame } from '@/contexts/TimeFrameContext';
 import { Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -17,12 +18,20 @@ const Index = () => {
   const navigate = useNavigate();
   const { transactions, isLoading: transactionsLoading, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
   const { categories, isLoading: categoriesLoading } = useCategories(transactions);
+  const { initializeWithTransactions } = useTimeFrame();
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth', { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  // Initialize smart default range based on transaction history
+  useEffect(() => {
+    if (!transactionsLoading && transactions.length > 0) {
+      initializeWithTransactions(transactions);
+    }
+  }, [transactions, transactionsLoading, initializeWithTransactions]);
 
   const handleAddTransaction = (newTransaction: Omit<typeof transactions[0], 'id'>) => {
     addTransaction(newTransaction);
