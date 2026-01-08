@@ -14,6 +14,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { useCreditCards } from '@/hooks/useCreditCards';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { CardIdentifier } from '@/components/CardIdentifier';
 
 interface AddTransactionModalProps {
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
@@ -25,7 +26,7 @@ interface AddTransactionModalProps {
 const incomeCategories = ['Salary', 'Freelance', 'Investments', 'Other Income'];
 
 export function AddTransactionModal({ onAddTransaction, categories, transactions = [], trigger }: AddTransactionModalProps) {
-  const { creditCards, addCreditCard } = useCreditCards();
+  const { creditCards, addCreditCard, updateCreditCard, lookupCardBenefits } = useCreditCards();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [amount, setAmount] = useState('');
@@ -631,18 +632,20 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                   </div>
                 )}
 
-                {/* New Card Input - Only show when adding new card */}
+                {/* New Card Input with Identify - Only show when adding new card */}
                 {paymentType === 'credit_card' && isAddingNewCard && (
-                  <div className="space-y-2">
-                    <Label htmlFor="new-card-name" className="text-foreground">New Card Name</Label>
-                    <Input
-                      id="new-card-name"
-                      placeholder="e.g., Chase Sapphire Preferred"
-                      value={newCardName}
-                      onChange={(e) => setNewCardName(e.target.value)}
-                      className="bg-secondary border-border"
-                    />
-                  </div>
+                  <CardIdentifier
+                    cardName={newCardName}
+                    onCardNameChange={setNewCardName}
+                    onCardIdentified={(cardId) => {
+                      setSelectedCreditCardId(cardId);
+                      setIsAddingNewCard(false);
+                    }}
+                    addCreditCard={addCreditCard}
+                    updateCreditCard={updateCreditCard}
+                    lookupCardBenefits={lookupCardBenefits}
+                    inputId="new-card-name"
+                  />
                 )}
 
                 {/* Payment Description - Only show for non-credit card types */}
