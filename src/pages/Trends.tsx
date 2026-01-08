@@ -77,7 +77,7 @@ const Trends = () => {
 
         {/* Time Frame Selector - synced with Home page */}
         <div className="mb-6">
-          <SummaryRangeSelector value={range} onChange={setRange} />
+          <SummaryRangeSelector value={range} onChange={setRange} transactions={transactions} />
         </div>
 
         {/* Charts Grid */}
