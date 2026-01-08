@@ -1,33 +1,53 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, ArrowDownRight, ArrowLeft, Search, Repeat, Loader2 } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, ArrowLeft, Search, Repeat, Loader2, ChevronDown, X, CalendarIcon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Transaction, Category } from '@/types/budget';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { EditTransactionModal } from '@/components/EditTransactionModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
+import { useCreditCards } from '@/hooks/useCreditCards';
+import { cn } from '@/lib/utils';
+
+const PAYMENT_TYPES = ['Credit Card', 'Cash', 'Venmo', 'Crypto', 'Bank Transfer', 'Other'];
 
 const Transactions = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { transactions, isLoading: transactionsLoading, updateTransaction, deleteTransaction } = useTransactions();
   const { categories, isLoading: categoriesLoading } = useCategories(transactions);
+  const { creditCards, isLoading: cardsLoading } = useCreditCards();
   
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
+  const [creditCardFilter, setCreditCardFilter] = useState('all');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth', { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  // Reset credit card filter when payment type changes away from Credit Card
+  useEffect(() => {
+    if (paymentTypeFilter !== 'Credit Card') {
+      setCreditCardFilter('all');
+    }
+  }, [paymentTypeFilter]);
 
   const filteredTransactions = useMemo(() => {
     return transactions
@@ -36,17 +56,55 @@ const Transactions = () => {
           t.category.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesType = typeFilter === 'all' || t.type === typeFilter;
         const matchesCategory = categoryFilter === 'all' || t.category === categoryFilter;
-        return matchesSearch && matchesType && matchesCategory;
+        const matchesPaymentType = paymentTypeFilter === 'all' || t.payment_type === paymentTypeFilter;
+        const matchesCreditCard = creditCardFilter === 'all' || t.credit_card_id === creditCardFilter;
+        
+        // Date range filtering
+        let matchesDateRange = true;
+        if (startDate || endDate) {
+          const transactionDate = parseISO(t.date);
+          if (startDate && endDate) {
+            matchesDateRange = isWithinInterval(transactionDate, {
+              start: startOfDay(startDate),
+              end: endOfDay(endDate),
+            });
+          } else if (startDate) {
+            matchesDateRange = transactionDate >= startOfDay(startDate);
+          } else if (endDate) {
+            matchesDateRange = transactionDate <= endOfDay(endDate);
+          }
+        }
+        
+        return matchesSearch && matchesType && matchesCategory && matchesPaymentType && matchesCreditCard && matchesDateRange;
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, searchTerm, typeFilter, categoryFilter]);
+  }, [transactions, searchTerm, typeFilter, categoryFilter, paymentTypeFilter, creditCardFilter, startDate, endDate]);
 
   const allCategories = useMemo(() => {
     const cats = new Set(transactions.map((t) => t.category));
     return Array.from(cats);
   }, [transactions]);
 
-  if (authLoading || transactionsLoading || categoriesLoading) {
+  const allPaymentTypes = useMemo(() => {
+    const types = new Set(transactions.map((t) => t.payment_type).filter(Boolean));
+    // Merge with default payment types
+    PAYMENT_TYPES.forEach((type) => types.add(type));
+    return Array.from(types) as string[];
+  }, [transactions]);
+
+  const hasActiveFilters = paymentTypeFilter !== 'all' || creditCardFilter !== 'all' || startDate || endDate;
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setTypeFilter('all');
+    setCategoryFilter('all');
+    setPaymentTypeFilter('all');
+    setCreditCardFilter('all');
+    setStartDate(undefined);
+    setEndDate(undefined);
+  };
+
+  if (authLoading || transactionsLoading || categoriesLoading || cardsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -80,6 +138,7 @@ const Transactions = () => {
       {/* Filters */}
       <div className="container mx-auto px-4 py-6">
         <Card className="gradient-card border-border/50 p-4 mb-6">
+          {/* Primary filters - always visible */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -94,7 +153,7 @@ const Transactions = () => {
               <SelectTrigger className="w-full sm:w-40 bg-secondary border-border">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
-              <SelectContent className="bg-card border-border">
+              <SelectContent className="bg-card border-border z-50">
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="income">Income</SelectItem>
                 <SelectItem value="expense">Expense</SelectItem>
@@ -104,7 +163,7 @@ const Transactions = () => {
               <SelectTrigger className="w-full sm:w-48 bg-secondary border-border">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
-              <SelectContent className="bg-card border-border">
+              <SelectContent className="bg-card border-border z-50">
                 <SelectItem value="all">All Categories</SelectItem>
                 {allCategories.map((cat) => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
@@ -112,6 +171,121 @@ const Transactions = () => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Collapsible additional filters */}
+          <Collapsible open={filtersExpanded} onOpenChange={setFiltersExpanded}>
+            <div className="flex items-center justify-between mt-4">
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <ChevronDown className={cn("w-4 h-4 mr-2 transition-transform", filtersExpanded && "rotate-180")} />
+                  More Filters
+                  {hasActiveFilters && (
+                    <span className="ml-2 w-2 h-2 rounded-full bg-primary" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              {(hasActiveFilters || searchTerm || typeFilter !== 'all' || categoryFilter !== 'all') && (
+                <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-muted-foreground hover:text-foreground">
+                  <X className="w-4 h-4 mr-1" />
+                  Clear All
+                </Button>
+              )}
+            </div>
+            
+            <CollapsibleContent className="pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Payment Type Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">Payment Type</label>
+                  <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
+                    <SelectTrigger className="w-full bg-secondary border-border">
+                      <SelectValue placeholder="All Payment Types" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border z-50">
+                      <SelectItem value="all">All Payment Types</SelectItem>
+                      {allPaymentTypes.map((type) => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Credit Card Filter - only shown when Payment Type is Credit Card */}
+                {paymentTypeFilter === 'Credit Card' && (
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">Credit Card</label>
+                    <Select value={creditCardFilter} onValueChange={setCreditCardFilter}>
+                      <SelectTrigger className="w-full bg-secondary border-border">
+                        <SelectValue placeholder="All Cards" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border z-50">
+                        <SelectItem value="all">All Cards</SelectItem>
+                        {creditCards.map((card) => (
+                          <SelectItem key={card.id} value={card.id}>{card.card_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Start Date Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">Start Date</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-secondary border-border",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "MMM d, yyyy") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-card border-border z-50" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* End Date Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">End Date</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-secondary border-border",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "MMM d, yyyy") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-card border-border z-50" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </Card>
 
         {/* Transaction List */}
