@@ -4,8 +4,6 @@ import { Card } from '@/components/ui/card';
 import { Transaction } from '@/types/budget';
 import { SummaryRangeSelector } from '@/components/SummaryRangeSelector';
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
-import { InsightCard } from '@/components/InsightCard';
-import { useBalanceInsight } from '@/hooks/useInsights';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
 
 interface BalanceCardProps {
@@ -37,8 +35,6 @@ export function BalanceCard({ transactions }: BalanceCardProps) {
       savingsRate: rate,
     };
   }, [filteredTransactions]);
-
-  const { message: insight } = useBalanceInsight(filteredTransactions, true);
 
   return (
     <Card className="gradient-card border-border/50 p-6 shadow-card animate-slide-up">
@@ -85,8 +81,6 @@ export function BalanceCard({ transactions }: BalanceCardProps) {
           </p>
         </div>
       </div>
-
-      {insight && <InsightCard message={insight} className="mt-4" />}
 
       <SummaryRangeSelector value={range} onChange={setRange} />
     </Card>

@@ -3,8 +3,6 @@ import { Card } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Transaction } from '@/types/budget';
 import { SummaryRangeSelector } from '@/components/SummaryRangeSelector';
-import { InsightCard } from '@/components/InsightCard';
-import { useSpendingInsight } from '@/hooks/useInsights';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 import { format, parseISO, startOfDay, eachDayOfInterval, startOfWeek, eachWeekOfInterval, startOfMonth, eachMonthOfInterval } from 'date-fns';
@@ -82,12 +80,6 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
     });
   }, [rentFilteredTransactions, range]);
 
-  const filteredForInsight = useMemo(() => {
-    return filterTransactionsByRange(rentFilteredTransactions, range);
-  }, [rentFilteredTransactions, range]);
-
-  const { message: insight } = useSpendingInsight(filteredForInsight, false, true);
-
   const rangeLabel = range === 'mtd' ? format(new Date(), 'MMMM') : 
                      range === 'ytd' ? format(new Date(), 'yyyy') :
                      range.toUpperCase();
@@ -163,8 +155,6 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
           </LineChart>
         </ResponsiveContainer>
       </div>
-
-      {insight && <InsightCard message={insight} className="mt-4" />}
 
       <SummaryRangeSelector value={range} onChange={setRange} />
     </Card>

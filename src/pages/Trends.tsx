@@ -9,11 +9,8 @@ import { AppLayout } from '@/components/AppLayout';
 import { CategoryBarChart } from '@/components/charts/CategoryBarChart';
 import { PaymentTypeChart } from '@/components/charts/PaymentTypeChart';
 import { CreditCardSpendingChart } from '@/components/charts/CreditCardSpendingChart';
-import { CardOptimizationInsight } from '@/components/CardOptimizationInsight';
 import { SummaryRangeSelector } from '@/components/SummaryRangeSelector';
-import { InsightCard } from '@/components/InsightCard';
 import { IncludeRentToggle } from '@/components/IncludeRentToggle';
-import { useTrendsInsight } from '@/hooks/useInsights';
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
@@ -42,8 +39,6 @@ const Trends = () => {
       .filter((t) => t.type === 'expense')
       .reduce((acc, t) => acc + t.amount, 0);
   }, [filteredTransactions]);
-
-  const { message: insight } = useTrendsInsight(filteredTransactions, true, 'range');
 
   const rangeLabel = range === 'mtd' ? format(new Date(), 'MMMM') : 
                      range === 'ytd' ? format(new Date(), 'yyyy') :
@@ -84,10 +79,6 @@ const Trends = () => {
         <div className="mb-6">
           <SummaryRangeSelector value={range} onChange={setRange} />
         </div>
-
-        {/* Insights */}
-        {insight && <InsightCard message={insight} className="mb-6" />}
-        <CardOptimizationInsight transactions={filteredTransactions} creditCards={creditCards} />
 
         {/* Charts Grid */}
         <div className="grid gap-6 md:grid-cols-2">
