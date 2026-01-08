@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { Search, X } from 'lucide-react';
+import { Search, X, ChevronRight, Check } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -9,7 +9,11 @@ import {
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Transaction } from '@/types/budget';
+import { Transaction, Category } from '@/types/budget';
+import { EditTransactionModal } from '@/components/EditTransactionModal';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useCategories } from '@/hooks/useCategories';
+import { cn } from '@/lib/utils';
 
 interface ChartDrilldownSheetProps {
   open: boolean;
@@ -38,6 +42,12 @@ export function ChartDrilldownSheet({
   transactions,
 }: ChartDrilldownSheetProps) {
   const [search, setSearch] = useState('');
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [recentlySavedId, setRecentlySavedId] = useState<string | null>(null);
+  
+  const { updateTransaction, deleteTransaction, transactions: allTransactions } = useTransactions();
+  const { categories } = useCategories();
 
   const filteredTransactions = useMemo(() => {
     if (!search.trim()) return transactions;
@@ -55,86 +65,140 @@ export function ChartDrilldownSheet({
     [transactions]
   );
 
+  const handleTransactionClick = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setEditModalOpen(true);
+  };
+
+  const handleUpdateTransaction = (updated: Partial<Transaction> & { id: string }) => {
+    updateTransaction(updated);
+    setRecentlySavedId(updated.id);
+    // Clear the saved indicator after animation
+    setTimeout(() => setRecentlySavedId(null), 2000);
+  };
+
+  const handleDeleteTransaction = (id: string) => {
+    deleteTransaction(id);
+  };
+
+  const handleEditModalClose = (isOpen: boolean) => {
+    setEditModalOpen(isOpen);
+    if (!isOpen) {
+      setSelectedTransaction(null);
+    }
+  };
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
-        <SheetHeader className="pb-4">
-          <SheetTitle className="flex items-center justify-between">
-            <span>{title}</span>
-            <span className="text-sm font-normal text-muted-foreground">
-              ${total.toLocaleString()} total
-            </span>
-          </SheetTitle>
-        </SheetHeader>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="flex items-center justify-between">
+              <span>{title}</span>
+              <span className="text-sm font-normal text-muted-foreground">
+                ${total.toLocaleString()} total
+              </span>
+            </SheetTitle>
+          </SheetHeader>
 
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search transactions..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 pr-9"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Results count */}
-        <p className="text-xs text-muted-foreground mb-3">
-          {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}
-          {search && ` matching "${search}"`}
-        </p>
-
-        {/* Transaction List */}
-        <ScrollArea className="h-[calc(85vh-180px)]">
-          <div className="space-y-2 pr-4">
-            {filteredTransactions.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                No transactions found
-              </div>
-            ) : (
-              filteredTransactions.map((t) => (
-                <div
-                  key={t.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">
-                      {t.description}
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                      <span>{format(new Date(t.date), 'MMM d, yyyy')}</span>
-                      <span>•</span>
-                      <span>{t.category}</span>
-                      {t.payment_type && (
-                        <>
-                          <span>•</span>
-                          <span>
-                            {PAYMENT_LABELS[t.payment_type] || t.payment_type}
-                            {t.payment_description && ` (${t.payment_description})`}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-right ml-3">
-                    <span className="font-semibold text-expense">
-                      -${t.amount.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              ))
+          {/* Search */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search transactions..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-9"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
             )}
           </div>
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+
+          {/* Results count */}
+          <p className="text-xs text-muted-foreground mb-3">
+            {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}
+            {search && ` matching "${search}"`}
+          </p>
+
+          {/* Inline note about trend updates */}
+          <p className="text-xs text-muted-foreground/70 mb-3 italic">
+            Editing a transaction will update your trends.
+          </p>
+
+          {/* Transaction List */}
+          <ScrollArea className="h-[calc(85vh-200px)]">
+            <div className="space-y-2 pr-4">
+              {filteredTransactions.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  No transactions found
+                </div>
+              ) : (
+                filteredTransactions.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => handleTransactionClick(t)}
+                    className={cn(
+                      "w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all text-left group",
+                      recentlySavedId === t.id && "ring-2 ring-income/50 bg-income/5"
+                    )}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-foreground truncate">
+                          {t.description}
+                        </p>
+                        {recentlySavedId === t.id && (
+                          <Check className="h-4 w-4 text-income flex-shrink-0 animate-in fade-in zoom-in" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                        <span>{format(new Date(t.date), 'MMM d, yyyy')}</span>
+                        <span>•</span>
+                        <span>{t.category}</span>
+                        {t.payment_type && (
+                          <>
+                            <span>•</span>
+                            <span>
+                              {PAYMENT_LABELS[t.payment_type] || t.payment_type}
+                              {t.payment_description && ` (${t.payment_description})`}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-3">
+                      <span className={cn(
+                        "font-semibold",
+                        t.type === 'expense' ? "text-expense" : "text-income"
+                      )}>
+                        {t.type === 'expense' ? '-' : '+'}${t.amount.toLocaleString()}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+      {/* Edit Transaction Modal */}
+      <EditTransactionModal
+        transaction={selectedTransaction}
+        open={editModalOpen}
+        onOpenChange={handleEditModalClose}
+        onUpdateTransaction={handleUpdateTransaction}
+        onDeleteTransaction={handleDeleteTransaction}
+        categories={categories}
+        transactions={allTransactions}
+      />
+    </>
   );
 }
