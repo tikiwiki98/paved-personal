@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Home, TrendingUp, LogOut, Wallet, CreditCard } from 'lucide-react';
+import { Home, TrendingUp, LogOut, Wallet, CreditCard, PiggyBank } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sidebar,
@@ -24,6 +24,7 @@ interface AppLayoutProps {
 const navItems = [
   { title: 'Home', url: '/', icon: Home },
   { title: 'Trends', url: '/trends', icon: TrendingUp },
+  { title: 'Budget', url: '/budget', icon: PiggyBank },
   { title: 'Cards', url: '/cards', icon: CreditCard },
 ];
 
