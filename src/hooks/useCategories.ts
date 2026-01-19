@@ -3,22 +3,27 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Category } from '@/types/budget';
 import { useToast } from '@/hooks/use-toast';
+import { useBudgets, BudgetTimeframe } from './useBudgets';
 
 const defaultCategories = [
-  { name: 'Rent', icon: '🏠', budget: 1500, color: '#ef4444' },
-  { name: 'Groceries', icon: '🛒', budget: 600, color: '#22c55e' },
-  { name: 'Entertainment', icon: '🎬', budget: 200, color: '#8b5cf6' },
-  { name: 'Utilities', icon: '💡', budget: 150, color: '#f59e0b' },
-  { name: 'Dining', icon: '🍽️', budget: 300, color: '#ec4899' },
-  { name: 'Transport', icon: '🚗', budget: 250, color: '#3b82f6' },
+  { name: 'Rent', icon: '🏠', color: '#ef4444' },
+  { name: 'Groceries', icon: '🛒', color: '#22c55e' },
+  { name: 'Entertainment', icon: '🎬', color: '#8b5cf6' },
+  { name: 'Utilities', icon: '💡', color: '#f59e0b' },
+  { name: 'Dining', icon: '🍽️', color: '#ec4899' },
+  { name: 'Transport', icon: '🚗', color: '#3b82f6' },
 ];
 
-export function useCategories(transactions: { type: string; category: string; amount: number }[] = []) {
+export function useCategories(
+  transactions: { type: string; category: string; amount: number }[] = [],
+  budgetTimeframe: BudgetTimeframe = 'monthly'
+) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { budgets, getBudgetForCategory, upsertBudget, isLoading: budgetsLoading } = useBudgets(budgetTimeframe);
 
-  const { data: categories = [], isLoading } = useQuery({
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ['categories', user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -39,7 +44,7 @@ export function useCategories(transactions: { type: string; category: string; am
               user_id: user.id,
               name: cat.name,
               icon: cat.icon,
-              budget: cat.budget,
+              budget: 0, // Default budget in categories table (legacy)
               color: cat.color,
             }))
           )
@@ -53,7 +58,7 @@ export function useCategories(transactions: { type: string; category: string; am
         id: c.id,
         name: c.name,
         icon: c.icon,
-        budget: Number(c.budget),
+        budget: 0, // Will be overridden by budgets table
         color: c.color,
         spent: 0, // Will be calculated from transactions
       })) as Category[];
@@ -61,31 +66,41 @@ export function useCategories(transactions: { type: string; category: string; am
     enabled: !!user,
   });
 
-  // Calculate spent amounts from transactions
-  const categoriesWithSpending = categories.map((cat) => {
+  const isLoading = categoriesLoading || budgetsLoading;
+
+  // Calculate spent amounts from transactions and get budgets from budgets table
+  const categoriesWithSpendingAndBudgets = categories.map((cat) => {
     const spent = transactions
       .filter((t) => t.type === 'expense' && t.category === cat.name)
       .reduce((sum, t) => sum + t.amount, 0);
-    return { ...cat, spent };
+    const budget = getBudgetForCategory(cat.name) ?? 0;
+    return { ...cat, spent, budget };
   });
 
   const addCategory = useMutation({
     mutationFn: async (category: Omit<Category, 'id' | 'spent'>) => {
       if (!user) throw new Error('User not authenticated');
       
+      // Add category without budget (budget goes to budgets table)
       const { data, error } = await supabase
         .from('categories')
         .insert({
           user_id: user.id,
           name: category.name,
           icon: category.icon,
-          budget: category.budget,
+          budget: 0, // Legacy field
           color: category.color,
         })
         .select()
         .single();
       
       if (error) throw error;
+      
+      // If a budget was provided, save it to the budgets table
+      if (category.budget > 0) {
+        upsertBudget({ category: category.name, amount: category.budget });
+      }
+      
       return data;
     },
     onSuccess: () => {
@@ -155,10 +170,11 @@ export function useCategories(transactions: { type: string; category: string; am
   });
 
   return {
-    categories: categoriesWithSpending,
+    categories: categoriesWithSpendingAndBudgets,
     isLoading,
     addCategory: addCategory.mutate,
     updateCategory: updateCategory.mutate,
     deleteCategory: deleteCategory.mutate,
+    upsertBudget,
   };
 }
