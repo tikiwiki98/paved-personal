@@ -15,6 +15,17 @@ export interface Budget {
   updated_at: string;
 }
 
+// Type for database response until types are regenerated
+interface BudgetRow {
+  id: string;
+  user_id: string;
+  category: string;
+  amount: number;
+  timeframe: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export function useBudgets(timeframe: BudgetTimeframe = 'monthly') {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -25,15 +36,20 @@ export function useBudgets(timeframe: BudgetTimeframe = 'monthly') {
     queryFn: async () => {
       if (!user) return [];
       
+      // Use raw query since types haven't regenerated yet
       const { data, error } = await supabase
-        .from('budgets')
+        .from('budgets' as any)
         .select('*')
         .eq('user_id', user.id)
         .eq('timeframe', timeframe);
       
       if (error) throw error;
       
-      return data as Budget[];
+      return ((data as unknown) as BudgetRow[]).map(row => ({
+        ...row,
+        amount: Number(row.amount),
+        timeframe: row.timeframe as BudgetTimeframe,
+      })) as Budget[];
     },
     enabled: !!user,
   });
@@ -47,7 +63,7 @@ export function useBudgets(timeframe: BudgetTimeframe = 'monthly') {
       
       if (existing) {
         const { error } = await supabase
-          .from('budgets')
+          .from('budgets' as any)
           .update({ amount })
           .eq('id', existing.id)
           .eq('user_id', user.id);
@@ -55,7 +71,7 @@ export function useBudgets(timeframe: BudgetTimeframe = 'monthly') {
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('budgets')
+          .from('budgets' as any)
           .insert({
             user_id: user.id,
             category,
@@ -87,7 +103,7 @@ export function useBudgets(timeframe: BudgetTimeframe = 'monthly') {
       if (!user) throw new Error('User not authenticated');
       
       const { error } = await supabase
-        .from('budgets')
+        .from('budgets' as any)
         .delete()
         .eq('user_id', user.id)
         .eq('category', category)
