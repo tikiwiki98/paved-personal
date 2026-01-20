@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,6 +63,64 @@ export function EditTransactionModal({
   const [selectedCreditCardId, setSelectedCreditCardId] = useState<string>('');
   const [newCardName, setNewCardName] = useState('');
   const [isAddingNewCard, setIsAddingNewCard] = useState(false);
+
+  // Get recent payment types (last 5 unique combinations)
+  const recentPaymentTypes = useMemo(() => {
+    const paymentTypeLabels: Record<string, string> = {
+      credit_card: 'Credit Card',
+      debit_card: 'Debit Card',
+      cash: 'Cash',
+      bank_transfer: 'Bank Transfer',
+      venmo: 'Venmo',
+      paypal: 'PayPal',
+      zelle: 'Zelle',
+      crypto: 'Crypto',
+      check: 'Check',
+      other: 'Other',
+    };
+
+    const transactionsWithPayment = transactions
+      .filter(t => t.payment_type)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    const seen = new Set<string>();
+    const recent: Array<{
+      paymentType: string;
+      creditCardId: string | null;
+      paymentDescription: string | null;
+      label: string;
+    }> = [];
+    
+    for (const t of transactionsWithPayment) {
+      // Create a unique key for this payment combination
+      const key = t.payment_type === 'credit_card' 
+        ? `credit_card:${t.credit_card_id || 'none'}`
+        : `${t.payment_type}`;
+      
+      if (!seen.has(key) && recent.length < 5) {
+        seen.add(key);
+        
+        // Build label
+        let label = paymentTypeLabels[t.payment_type || ''] || t.payment_type || '';
+        if (t.payment_type === 'credit_card' && t.credit_card_id) {
+          const card = creditCards.find(c => c.id === t.credit_card_id);
+          if (card) {
+            label = card.card_name;
+          }
+        }
+        
+        recent.push({
+          paymentType: t.payment_type || '',
+          creditCardId: t.credit_card_id || null,
+          paymentDescription: t.payment_description || null,
+          label,
+        });
+      }
+      if (recent.length >= 5) break;
+    }
+    
+    return recent;
+  }, [transactions, creditCards]);
 
   useEffect(() => {
     if (transaction) {
@@ -418,6 +476,34 @@ export function EditTransactionModal({
               {/* Payment Type Options - Only show when toggle is enabled */}
               {showPaymentType && (
                 <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border animate-in fade-in slide-in-from-top-2 duration-200">
+                  {/* Recent Payment Types */}
+                  {recentPaymentTypes.length > 0 && !paymentType && (
+                    <div className="space-y-2">
+                      <Label className="text-foreground text-sm">Recent</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {recentPaymentTypes.map((recent, index) => (
+                          <Button
+                            key={index}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-xs bg-secondary border-border hover:bg-secondary/80"
+                            onClick={() => {
+                              setPaymentType(recent.paymentType);
+                              if (recent.paymentType === 'credit_card' && recent.creditCardId) {
+                                setSelectedCreditCardId(recent.creditCardId);
+                                setIsAddingNewCard(false);
+                              }
+                              setPaymentDescription(recent.paymentDescription || '');
+                            }}
+                          >
+                            {recent.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Payment Type Select */}
                   <div className="space-y-2">
                     <Label className="text-foreground">Payment Type</Label>
