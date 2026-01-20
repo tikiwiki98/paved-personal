@@ -2,3 +2,6 @@ project_id = "xisufjxesbzqmemrwrky"
 
 [functions.lookup-card-benefits]
 verify_jwt = false
+
+[functions.spend-insights]
+verify_jwt = false

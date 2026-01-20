@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BalanceCard } from '@/components/BalanceCard';
 import { TransactionList } from '@/components/TransactionList';
 import { SpendingOverTimeChart } from '@/components/SpendingOverTimeChart';
+import { SpendInsights } from '@/components/SpendInsights';
 import { AddTransactionModal } from '@/components/AddTransactionModal';
 import { AppLayout } from '@/components/AppLayout';
 import { IncludeRentToggle } from '@/components/IncludeRentToggle';
@@ -61,6 +62,7 @@ const Index = () => {
           {/* Left Column - Balance & Chart */}
           <div className="lg:col-span-2 space-y-6">
             <BalanceCard transactions={transactions} />
+            <SpendInsights transactions={transactions} />
             <SpendingOverTimeChart transactions={transactions} />
             <TransactionList 
               transactions={transactions} 
