@@ -1,6 +1,5 @@
 import { Card } from '@/components/ui/card';
 import { Category } from '@/types/budget';
-import { BudgetTimeframe } from '@/hooks/useBudgets';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
 import { getDateRangeStart } from '@/lib/dateRangeUtils';
 import { useMemo } from 'react';
@@ -11,10 +10,9 @@ import { startOfDay } from 'date-fns';
 interface BudgetOverviewProps {
   categories: Category[];
   transactions: { type: string; category: string; amount: number; date: string }[];
-  timeframe: BudgetTimeframe;
 }
 
-export function BudgetOverview({ categories, transactions, timeframe }: BudgetOverviewProps) {
+export function BudgetOverview({ categories, transactions }: BudgetOverviewProps) {
   const { range, includeRent } = useTimeFrame();
 
   const { totalBudget, totalSpent, categoriesWithBudget } = useMemo(() => {
@@ -62,13 +60,11 @@ export function BudgetOverview({ categories, transactions, timeframe }: BudgetOv
     color: c.color,
   })).filter(d => d.value > 0);
 
-  const timeframeLabel = timeframe === 'monthly' ? 'Monthly' : timeframe === 'quarterly' ? 'Quarterly' : 'Yearly';
-
   return (
     <Card className="gradient-card border-border/50 p-6 shadow-card animate-slide-up">
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-foreground mb-1">Budget Overview</h3>
-        <p className="text-sm text-muted-foreground">{timeframeLabel} budget progress</p>
+        <p className="text-sm text-muted-foreground">Monthly budget progress</p>
       </div>
 
       {/* Overall Progress */}

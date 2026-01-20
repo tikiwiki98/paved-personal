@@ -4,17 +4,15 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Category } from '@/types/budget';
-import { BudgetTimeframe } from '@/hooks/useBudgets';
 import { Pencil, Check, X } from 'lucide-react';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
 
 interface BudgetByCategoryProps {
   categories: Category[];
   onUpdateBudget: (params: { category: string; amount: number }) => void;
-  timeframe: BudgetTimeframe;
 }
 
-export function BudgetByCategory({ categories, onUpdateBudget, timeframe }: BudgetByCategoryProps) {
+export function BudgetByCategory({ categories, onUpdateBudget }: BudgetByCategoryProps) {
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const { includeRent } = useTimeFrame();
@@ -46,13 +44,11 @@ export function BudgetByCategory({ categories, onUpdateBudget, timeframe }: Budg
     return a.name.localeCompare(b.name);
   });
 
-  const timeframeLabel = timeframe === 'monthly' ? 'month' : timeframe === 'quarterly' ? 'quarter' : 'year';
-
   return (
     <Card className="gradient-card border-border/50 p-6 shadow-card animate-slide-up" style={{ animationDelay: '0.1s' }}>
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-foreground mb-1">Budget by Category</h3>
-        <p className="text-sm text-muted-foreground">Set your spending limits per {timeframeLabel}</p>
+        <p className="text-sm text-muted-foreground">Set your monthly spending limits</p>
       </div>
 
       <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
