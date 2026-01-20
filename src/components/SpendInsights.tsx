@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, TrendingUp, Clock, BarChart3, List, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, Sparkles, TrendingUp, Clock, BarChart3, List, AlertCircle, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -30,10 +30,12 @@ const insightButtons = [
 export function SpendInsights({ transactions }: SpendInsightsProps) {
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryFailed, setSummaryFailed] = useState(false);
   const [activeInsight, setActiveInsight] = useState<InsightType | null>(null);
   const [insightContent, setInsightContent] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
   const { toast } = useToast();
 
   // Filter to just the serializable data we need
@@ -45,9 +47,10 @@ export function SpendInsights({ transactions }: SpendInsightsProps) {
     type: t.type,
   }));
 
-  const fetchInsight = async (type: InsightType) => {
+  const fetchInsight = useCallback(async (type: InsightType) => {
     if (type === 'summary') {
       setSummaryLoading(true);
+      setSummaryFailed(false);
     } else {
       setInsightLoading(true);
       setActiveInsight(type);
@@ -62,22 +65,29 @@ export function SpendInsights({ transactions }: SpendInsightsProps) {
         throw new Error(error.message);
       }
 
-      if (data.error) {
+      if (data?.error) {
         toast({
           title: 'Insight unavailable',
           description: data.error,
           variant: 'destructive',
         });
+        if (type === 'summary') {
+          setSummaryFailed(true);
+        }
         return;
       }
 
       if (type === 'summary') {
-        setSummary(data.insight);
+        setSummary(data?.insight || null);
+        setHasFetched(true);
       } else {
-        setInsightContent(data.insight);
+        setInsightContent(data?.insight || null);
       }
     } catch (err) {
       console.error('Failed to fetch insight:', err);
+      if (type === 'summary') {
+        setSummaryFailed(true);
+      }
       toast({
         title: 'Error',
         description: 'Failed to generate insight. Please try again.',
@@ -90,14 +100,14 @@ export function SpendInsights({ transactions }: SpendInsightsProps) {
         setInsightLoading(false);
       }
     }
-  };
+  }, [transactionData, toast]);
 
   // Fetch summary on mount if we have transactions
   useEffect(() => {
-    if (transactions.length > 0 && !summary && !summaryLoading) {
+    if (transactions.length > 0 && !summary && !summaryLoading && !hasFetched) {
       fetchInsight('summary');
     }
-  }, [transactions.length]);
+  }, [transactions.length, summary, summaryLoading, hasFetched, fetchInsight]);
 
   const handleInsightClick = (type: InsightType) => {
     if (activeInsight === type) {
@@ -109,6 +119,12 @@ export function SpendInsights({ transactions }: SpendInsightsProps) {
       setInsightContent(null);
       fetchInsight(type);
     }
+  };
+
+  const handleRetry = () => {
+    setSummaryFailed(false);
+    setHasFetched(false);
+    fetchInsight('summary');
   };
 
   // Don't show if no transactions
@@ -123,14 +139,27 @@ export function SpendInsights({ transactions }: SpendInsightsProps) {
           <Sparkles className="w-5 h-5 text-primary" />
           <h3 className="font-semibold text-foreground">Monthly Summary</h3>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground"
-          onClick={() => setExpanded(!expanded)}
-        >
-          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </Button>
+        <div className="flex items-center gap-1">
+          {summary && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground h-8 w-8 p-0"
+              onClick={handleRetry}
+              disabled={summaryLoading}
+            >
+              <RefreshCw className={`w-4 h-4 ${summaryLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </Button>
+        </div>
       </div>
 
       {/* Summary */}
@@ -142,10 +171,18 @@ export function SpendInsights({ transactions }: SpendInsightsProps) {
           </div>
         ) : summary ? (
           <p className="text-sm text-foreground leading-relaxed">{summary}</p>
+        ) : summaryFailed ? (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Failed to load summary.</span>
+            <Button variant="link" size="sm" className="text-primary p-0 h-auto" onClick={handleRetry}>
+              Try again
+            </Button>
+          </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            Add some transactions to see your monthly summary.
-          </p>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-sm">Loading...</span>
+          </div>
         )}
       </div>
 
