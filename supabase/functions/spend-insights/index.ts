@@ -5,8 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type InsightType = "summary" | "trend" | "frequency" | "volatility" | "top" | "unusual";
-
 interface Transaction {
   amount: number;
   category: string;
@@ -17,10 +15,9 @@ interface Transaction {
 
 interface RequestBody {
   transactions: Transaction[];
-  insightType: InsightType;
 }
 
-function buildPrompt(transactions: Transaction[], insightType: InsightType): string {
+function buildPrompt(transactions: Transaction[]): string {
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
@@ -43,93 +40,127 @@ function buildPrompt(transactions: Transaction[], insightType: InsightType): str
 
   // Calculate category totals for current month
   const currentByCategory: Record<string, number> = {};
+  const currentCountByCategory: Record<string, number> = {};
   currentMonthTxns.forEach(t => {
     currentByCategory[t.category] = (currentByCategory[t.category] || 0) + t.amount;
+    currentCountByCategory[t.category] = (currentCountByCategory[t.category] || 0) + 1;
   });
 
-  // Calculate average by category for recent months
-  const recentByCategory: Record<string, number[]> = {};
+  // Calculate monthly averages by category for recent months
+  const recentMonthlyByCategory: Record<string, number[]> = {};
+  const recentCountByCategory: Record<string, number[]> = {};
+  
   recentTxns.forEach(t => {
     const d = new Date(t.date);
     const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
-    if (!recentByCategory[t.category]) recentByCategory[t.category] = [];
-    // We'll aggregate per month later
+    if (!recentMonthlyByCategory[t.category]) {
+      recentMonthlyByCategory[t.category] = [];
+      recentCountByCategory[t.category] = [];
+    }
   });
 
+  // Group recent transactions by month and category
+  const recentByMonthCategory: Record<string, Record<string, { total: number; count: number }>> = {};
+  recentTxns.forEach(t => {
+    const d = new Date(t.date);
+    const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
+    if (!recentByMonthCategory[monthKey]) recentByMonthCategory[monthKey] = {};
+    if (!recentByMonthCategory[monthKey][t.category]) {
+      recentByMonthCategory[monthKey][t.category] = { total: 0, count: 0 };
+    }
+    recentByMonthCategory[monthKey][t.category].total += t.amount;
+    recentByMonthCategory[monthKey][t.category].count += 1;
+  });
+
+  // Calculate averages
+  const categoryAvgSpend: Record<string, number> = {};
+  const categoryAvgCount: Record<string, number> = {};
+  const monthCount = Object.keys(recentByMonthCategory).length || 1;
+  
+  for (const monthData of Object.values(recentByMonthCategory)) {
+    for (const [cat, data] of Object.entries(monthData)) {
+      categoryAvgSpend[cat] = (categoryAvgSpend[cat] || 0) + data.total / monthCount;
+      categoryAvgCount[cat] = (categoryAvgCount[cat] || 0) + data.count / monthCount;
+    }
+  }
+
+  // Calculate variance/volatility
+  const categoryVariance: Record<string, number> = {};
+  for (const [cat, avg] of Object.entries(categoryAvgSpend)) {
+    const monthlyTotals = Object.values(recentByMonthCategory).map(m => m[cat]?.total || 0);
+    if (monthlyTotals.length > 1) {
+      const variance = monthlyTotals.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / monthlyTotals.length;
+      categoryVariance[cat] = Math.sqrt(variance);
+    }
+  }
+
   const totalCurrentMonth = Object.values(currentByCategory).reduce((a, b) => a + b, 0);
+  const totalRecentAvg = recentTxns.length > 0 ? recentTxns.reduce((a, t) => a + t.amount, 0) / monthCount : 0;
+  
   const sortedCategories = Object.entries(currentByCategory)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
 
-  const dataContext = `
-Current month spending data:
-- Total spent this month: $${totalCurrentMonth.toFixed(2)}
-- Number of transactions: ${currentMonthTxns.length}
-- Top categories: ${sortedCategories.map(([cat, amt]) => `${cat}: $${amt.toFixed(2)}`).join(", ")}
-- Recent transactions sample: ${currentMonthTxns.slice(0, 10).map(t => `${t.description}: $${t.amount} (${t.category})`).join("; ")}
-- Previous 3 months average total: $${recentTxns.length > 0 ? (recentTxns.reduce((a, t) => a + t.amount, 0) / 3).toFixed(2) : "N/A"}
-`;
-
-  const baseRules = `
-CRITICAL RULES:
-- Be neutral, observational, non-judgmental
-- Do NOT give advice or recommendations
-- Do NOT mention budgets unless data includes them
-- Do NOT mention credit card rewards
-- Do NOT infer emotions, goals, or financial health
-- If data is insufficient, say so briefly
-- No emojis in your response
-`;
-
-  if (insightType === "summary") {
-    return `${baseRules}
-
-${dataContext}
-
-Generate a 1-2 sentence summary of the user's current month spending. Be concise and easy to read at a glance. Focus only on overall spending level and top 1-2 categories.`;
+  // Find largest transactions
+  const largestTxns = [...currentMonthTxns].sort((a, b) => b.amount - a.amount).slice(0, 3);
+  
+  // Calculate percentage changes by category
+  const categoryChanges: { category: string; current: number; avg: number; pctChange: number }[] = [];
+  for (const [cat, current] of Object.entries(currentByCategory)) {
+    const avg = categoryAvgSpend[cat] || 0;
+    if (avg > 0) {
+      const pctChange = ((current - avg) / avg) * 100;
+      categoryChanges.push({ category: cat, current, avg, pctChange });
+    }
   }
+  categoryChanges.sort((a, b) => Math.abs(b.pctChange) - Math.abs(a.pctChange));
 
-  if (insightType === "trend") {
-    return `${baseRules}
-
-${dataContext}
-
-In 1-2 sentences, describe any notable spending trend changes by comparing current month to recent average. If no notable changes, say spending is consistent.`;
+  // Frequency changes
+  const frequencyChanges: { category: string; current: number; avg: number; diff: number }[] = [];
+  for (const [cat, count] of Object.entries(currentCountByCategory)) {
+    const avg = categoryAvgCount[cat] || 0;
+    if (avg > 0) {
+      frequencyChanges.push({ category: cat, current: count, avg, diff: count - avg });
+    }
   }
+  frequencyChanges.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
 
-  if (insightType === "frequency") {
-    return `${baseRules}
+  // Most volatile categories
+  const volatileCategories = Object.entries(categoryVariance)
+    .filter(([_, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
 
-${dataContext}
+  return `You are a financial data analyst generating a single, digestible insight.
 
-In 1-2 sentences, describe the spending frequency pattern - how often transactions occur and if any category has notably more frequent spending than usual.`;
-  }
+STRICT RULES:
+- Output EXACTLY 1-2 sentences, no more
+- Be neutral, observational, calm
+- Do NOT give advice or use "you should"
+- Do NOT infer intent, goals, or emotions
+- Do NOT mention financial health or success/failure
+- Use actual numbers when possible
+- No emojis
+- If data is insufficient for a meaningful insight, state spending appears typical
 
-  if (insightType === "volatility") {
-    return `${baseRules}
+DATA CONTEXT:
+- Current month total: $${totalCurrentMonth.toFixed(0)}
+- Recent monthly average: $${totalRecentAvg.toFixed(0)}
+- Current month transactions: ${currentMonthTxns.length}
+- Top categories: ${sortedCategories.map(([cat, amt]) => `${cat} ($${amt.toFixed(0)})`).join(", ")}
+- Category changes vs avg: ${categoryChanges.slice(0, 3).map(c => `${c.category}: ${c.pctChange > 0 ? '+' : ''}${c.pctChange.toFixed(0)}%`).join(", ") || "N/A"}
+- Frequency patterns: ${frequencyChanges.slice(0, 2).map(f => `${f.category}: ${f.current} txns vs ${f.avg.toFixed(1)} avg`).join(", ") || "N/A"}
+- Volatile categories: ${volatileCategories.map(([cat]) => cat).join(", ") || "N/A"}
+- Largest transactions: ${largestTxns.map(t => `${t.description}: $${t.amount.toFixed(0)} (${t.category})`).join("; ") || "N/A"}
 
-${dataContext}
+INSIGHT TYPES (choose the most impactful one):
+1. Spending Trend Change - if a category is notably higher/lower than average
+2. Spending Frequency - if transaction count in a category differs from usual
+3. Category Volatility - if a category fluctuates more than others
+4. Top Categories - share breakdown of largest spending areas
+5. Unusual Transaction - if a transaction is notably large for its category
 
-In 1-2 sentences, identify which spending categories fluctuate the most month-to-month based on the data.`;
-  }
-
-  if (insightType === "top") {
-    return `${baseRules}
-
-${dataContext}
-
-In 1-2 sentences, rank and describe the top spending categories for the current month by their share of total spending.`;
-  }
-
-  if (insightType === "unusual") {
-    return `${baseRules}
-
-${dataContext}
-
-In 1-2 sentences, highlight any transactions that appear unusually large or rare compared to typical spending patterns. If none, state that spending appears typical.`;
-  }
-
-  return `${baseRules}\n${dataContext}\nProvide a brief neutral observation about spending.`;
+Generate ONE insight that provides the most interesting or notable observation from this data. If nothing stands out, focus on top spending categories.`;
 }
 
 serve(async (req) => {
@@ -138,14 +169,16 @@ serve(async (req) => {
   }
 
   try {
-    const { transactions, insightType }: RequestBody = await req.json();
+    const { transactions }: RequestBody = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const prompt = buildPrompt(transactions, insightType);
+    const prompt = buildPrompt(transactions);
+
+    console.log("Generating insight for", transactions.length, "transactions");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -158,7 +191,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are a neutral financial data summarizer. You provide brief, factual observations about spending data without advice or judgment.",
+            content: "You are a neutral financial data observer. Output only 1-2 sentences. No advice, no judgment, just facts.",
           },
           { role: "user", content: prompt },
         ],
@@ -189,6 +222,8 @@ serve(async (req) => {
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "Unable to generate insight.";
+
+    console.log("Generated insight:", content);
 
     return new Response(
       JSON.stringify({ insight: content }),
