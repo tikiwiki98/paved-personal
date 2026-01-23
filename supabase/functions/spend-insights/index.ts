@@ -86,12 +86,7 @@ CRITICAL RULES:
 
 ${dataContext}
 
-Generate a 2-3 sentence summary of the user's current month spending. Focus only on:
-- Overall spending level
-- Top spending categories
-- Notable patterns if any
-
-Keep it calm, trustworthy, and informative.`;
+Generate a 1-2 sentence summary of the user's current month spending. Be concise and easy to read at a glance. Focus only on overall spending level and top 1-2 categories.`;
   }
 
   if (insightType === "trend") {

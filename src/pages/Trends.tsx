@@ -11,6 +11,7 @@ import { PaymentTypeChart } from '@/components/charts/PaymentTypeChart';
 import { CreditCardSpendingChart } from '@/components/charts/CreditCardSpendingChart';
 import { SummaryRangeSelector } from '@/components/SummaryRangeSelector';
 import { IncludeRentToggle } from '@/components/IncludeRentToggle';
+import { SpendInsights } from '@/components/SpendInsights';
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
@@ -78,6 +79,11 @@ const Trends = () => {
         {/* Time Frame Selector - synced with Home page */}
         <div className="mb-6">
           <SummaryRangeSelector value={range} onChange={setRange} transactions={transactions} />
+        </div>
+
+        {/* AI Insights */}
+        <div className="mb-6">
+          <SpendInsights transactions={filteredTransactions} />
         </div>
 
         {/* Charts Grid */}
