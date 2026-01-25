@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowUpRight, ArrowDownRight, Repeat } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Repeat, TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Transaction, Category } from '@/types/budget';
 import { format, parseISO } from 'date-fns';
@@ -25,6 +25,50 @@ export function TransactionList({
   const sortedTransactions = [...transactions].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
+
+  const getTransactionIcon = (type: Transaction['type']) => {
+    switch (type) {
+      case 'income':
+        return <ArrowUpRight className="w-5 h-5 text-income" />;
+      case 'expense':
+        return <ArrowDownRight className="w-5 h-5 text-expense" />;
+      case 'transfer':
+        return <TrendingUp className="w-5 h-5 text-primary" />;
+    }
+  };
+
+  const getTransactionBg = (type: Transaction['type']) => {
+    switch (type) {
+      case 'income':
+        return 'bg-income/20';
+      case 'expense':
+        return 'bg-expense/20';
+      case 'transfer':
+        return 'bg-primary/20';
+    }
+  };
+
+  const getTransactionColor = (type: Transaction['type']) => {
+    switch (type) {
+      case 'income':
+        return 'text-income';
+      case 'expense':
+        return 'text-expense';
+      case 'transfer':
+        return 'text-primary';
+    }
+  };
+
+  const getAmountPrefix = (type: Transaction['type']) => {
+    switch (type) {
+      case 'income':
+        return '+';
+      case 'expense':
+        return '-';
+      case 'transfer':
+        return '→';
+    }
+  };
 
   return (
     <>
@@ -52,17 +96,9 @@ export function TransactionList({
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
-                      transaction.type === 'income'
-                        ? 'bg-income/20'
-                        : 'bg-expense/20'
-                    }`}
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${getTransactionBg(transaction.type)}`}
                   >
-                    {transaction.type === 'income' ? (
-                      <ArrowUpRight className="w-5 h-5 text-income" />
-                    ) : (
-                      <ArrowDownRight className="w-5 h-5 text-expense" />
-                    )}
+                    {getTransactionIcon(transaction.type)}
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
@@ -71,16 +107,17 @@ export function TransactionList({
                         <Repeat className="w-3.5 h-3.5 text-primary" />
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground">{transaction.category}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {transaction.type === 'transfer' && transaction.asset_type 
+                        ? `Transfer · ${transaction.asset_type.replace('_', ' ')}`
+                        : transaction.category
+                      }
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p
-                    className={`font-bold ${
-                      transaction.type === 'income' ? 'text-income' : 'text-expense'
-                    }`}
-                  >
-                    {transaction.type === 'income' ? '+' : '-'}$
+                  <p className={`font-bold ${getTransactionColor(transaction.type)}`}>
+                    {getAmountPrefix(transaction.type)}$
                     {transaction.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </p>
                   <p className="text-xs text-muted-foreground">

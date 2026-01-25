@@ -18,20 +18,25 @@ export function BalanceCard({ transactions }: BalanceCardProps) {
     return filterRent(rangeFiltered);
   }, [transactions, range, filterRent]);
 
-  const { totalBalance, totalIncome, totalExpenses, savingsRate } = useMemo(() => {
+  const { totalBalance, totalIncome, totalExpenses, totalTransfers, savingsRate } = useMemo(() => {
     const income = filteredTransactions
       .filter((t) => t.type === 'income')
       .reduce((acc, t) => acc + t.amount, 0);
     const expenses = filteredTransactions
       .filter((t) => t.type === 'expense')
       .reduce((acc, t) => acc + t.amount, 0);
-    const balance = income - expenses;
-    const rate = income > 0 ? ((income - expenses) / income * 100).toFixed(1) : '0';
+    const transfers = filteredTransactions
+      .filter((t) => t.type === 'transfer')
+      .reduce((acc, t) => acc + t.amount, 0);
+    // Balance = income - expenses - transfers (transfers reduce available cash)
+    const balance = income - expenses - transfers;
+    const rate = income > 0 ? ((income - expenses - transfers) / income * 100).toFixed(1) : '0';
 
     return {
       totalBalance: balance,
       totalIncome: income,
       totalExpenses: expenses,
+      totalTransfers: transfers,
       savingsRate: rate,
     };
   }, [filteredTransactions]);

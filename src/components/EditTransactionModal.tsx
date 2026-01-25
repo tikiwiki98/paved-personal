@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowUpRight, ArrowDownRight, Trash2, Check, ChevronsUpDown, Repeat, CalendarIcon, CreditCard } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Trash2, Check, ChevronsUpDown, Repeat, CalendarIcon, CreditCard, TrendingUp } from 'lucide-react';
 import { Transaction, Category } from '@/types/budget';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -36,6 +36,13 @@ interface EditTransactionModalProps {
 }
 
 const incomeCategories = ['Salary', 'Freelance', 'Investments', 'Other Income'];
+const assetTypeOptions = [
+  { value: 'brokerage', label: 'Brokerage' },
+  { value: 'retirement', label: 'Retirement (401k, IRA, Roth)' },
+  { value: 'high_yield_savings', label: 'High-yield Savings' },
+  { value: 'crypto', label: 'Crypto' },
+  { value: 'other', label: 'Other' },
+];
 
 export function EditTransactionModal({
   transaction,
@@ -47,7 +54,7 @@ export function EditTransactionModal({
   transactions = [],
 }: EditTransactionModalProps) {
   const { creditCards, addCreditCard, updateCreditCard: updateCard, lookupCardBenefits } = useCreditCards();
-  const [type, setType] = useState<'income' | 'expense'>('expense');
+  const [type, setType] = useState<'income' | 'expense' | 'transfer'>('expense');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
@@ -63,6 +70,10 @@ export function EditTransactionModal({
   const [selectedCreditCardId, setSelectedCreditCardId] = useState<string>('');
   const [newCardName, setNewCardName] = useState('');
   const [isAddingNewCard, setIsAddingNewCard] = useState(false);
+  
+  // Transfer-specific fields
+  const [assetType, setAssetType] = useState<string>('');
+  const [assetName, setAssetName] = useState('');
 
   // Get recent payment types (last 5 unique combinations)
   const recentPaymentTypes = useMemo(() => {
@@ -92,7 +103,6 @@ export function EditTransactionModal({
     }> = [];
     
     for (const t of transactionsWithPayment) {
-      // Create a unique key for this payment combination
       const key = t.payment_type === 'credit_card' 
         ? `credit_card:${t.credit_card_id || 'none'}`
         : `${t.payment_type}`;
@@ -100,7 +110,6 @@ export function EditTransactionModal({
       if (!seen.has(key) && recent.length < 5) {
         seen.add(key);
         
-        // Build label
         let label = paymentTypeLabels[t.payment_type || ''] || t.payment_type || '';
         if (t.payment_type === 'credit_card' && t.credit_card_id) {
           const card = creditCards.find(c => c.id === t.credit_card_id);
@@ -139,12 +148,17 @@ export function EditTransactionModal({
       setSelectedCreditCardId(transaction.credit_card_id || '');
       setIsAddingNewCard(false);
       setNewCardName('');
+      setAssetType(transaction.asset_type || '');
+      setAssetName(transaction.asset_name || '');
     }
   }, [transaction]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!transaction || !amount || !category || !description) return;
+    if (!transaction || !amount) return;
+    
+    // Validate based on type
+    if (type !== 'transfer' && (!category || !description)) return;
 
     // If adding a new credit card, create it first
     let creditCardId: string | null = null;
@@ -163,8 +177,8 @@ export function EditTransactionModal({
       id: transaction.id,
       amount: parseFloat(amount),
       type,
-      category,
-      description,
+      category: type === 'transfer' ? 'Transfer' : category,
+      description: type === 'transfer' ? (assetName || 'Transfer/Investment') : description,
       date,
       is_recurring: isRecurring,
     };
@@ -179,7 +193,7 @@ export function EditTransactionModal({
       updateData.recurring_end_date = null;
     }
 
-    if (showPaymentType && paymentType) {
+    if (type !== 'transfer' && showPaymentType && paymentType) {
       updateData.payment_type = paymentType;
       updateData.payment_description = paymentDescription || null;
       updateData.credit_card_id = creditCardId;
@@ -187,6 +201,15 @@ export function EditTransactionModal({
       updateData.payment_type = null;
       updateData.payment_description = null;
       updateData.credit_card_id = null;
+    }
+
+    // Transfer-specific fields
+    if (type === 'transfer') {
+      updateData.asset_type = assetType || null;
+      updateData.asset_name = assetName || null;
+    } else {
+      updateData.asset_type = null;
+      updateData.asset_name = null;
     }
 
     onUpdateTransaction(updateData);
@@ -210,7 +233,7 @@ export function EditTransactionModal({
         .map(t => t.category)
         .filter(cat => !incomeCategories.includes(cat));
       return [...new Set([...incomeCategories, ...customIncomeCategories])];
-    } else {
+    } else if (type === 'expense') {
       const predefinedExpense = categories.map((c) => c.name);
       const customExpenseCategories = transactions
         .filter(t => t.type === 'expense')
@@ -218,6 +241,7 @@ export function EditTransactionModal({
         .filter(cat => !predefinedExpense.includes(cat));
       return [...new Set([...predefinedExpense, ...customExpenseCategories])];
     }
+    return [];
   })();
 
   return (
@@ -228,7 +252,7 @@ export function EditTransactionModal({
             <DialogTitle className="text-foreground">Edit Transaction</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-            {/* Transaction Type Toggle */}
+            {/* Transaction Type Toggle - 3 options */}
             <div className="flex gap-2 p-1 bg-secondary rounded-xl">
               <button
                 type="button"
@@ -236,7 +260,7 @@ export function EditTransactionModal({
                   setType('income');
                   setCategory('');
                 }}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-3 px-2 rounded-lg font-medium transition-all duration-200 text-sm ${
                   type === 'income'
                     ? 'bg-income text-primary-foreground shadow-md'
                     : 'text-muted-foreground hover:text-foreground'
@@ -251,7 +275,7 @@ export function EditTransactionModal({
                   setType('expense');
                   setCategory('');
                 }}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-3 px-2 rounded-lg font-medium transition-all duration-200 text-sm ${
                   type === 'expense'
                     ? 'bg-expense text-destructive-foreground shadow-md'
                     : 'text-muted-foreground hover:text-foreground'
@@ -259,6 +283,21 @@ export function EditTransactionModal({
               >
                 <ArrowDownRight className="w-4 h-4" />
                 Expense
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setType('transfer');
+                  setCategory('');
+                }}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-3 px-2 rounded-lg font-medium transition-all duration-200 text-sm ${
+                  type === 'transfer'
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4" />
+                Transfer
               </button>
             </div>
 
@@ -280,342 +319,381 @@ export function EditTransactionModal({
               </div>
             </div>
 
-            {/* Category Combobox */}
-            <div className="space-y-2">
-              <Label className="text-foreground">Category</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between bg-secondary border-border font-normal"
-                  >
-                    {category || "Select or type a category"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0 bg-card border-border" align="start">
-                  <Command className="bg-card">
-                    <CommandInput 
-                      placeholder="Search or type custom..." 
-                      value={category}
-                      onValueChange={setCategory}
-                      className="bg-card"
-                    />
-                    <CommandList>
-                      <CommandEmpty className="py-2 px-4 text-sm text-muted-foreground">
-                        Press enter to use "{category}"
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {categoryOptions.map((cat) => (
-                          <CommandItem
-                            key={cat}
-                            value={cat}
-                            onSelect={(value) => setCategory(value)}
-                            className="cursor-pointer"
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                category === cat ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {cat}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Description Input */}
-            <div className="space-y-2">
-              <Label htmlFor="edit-description" className="text-foreground">Description</Label>
-              <Input
-                id="edit-description"
-                placeholder="Enter a description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="bg-secondary border-border"
-              />
-            </div>
-
-            {/* Date Input */}
-            <div className="space-y-2">
-              <Label htmlFor="edit-date" className="text-foreground">Date</Label>
-              <Input
-                id="edit-date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="bg-secondary border-border"
-              />
-            </div>
-
-            {/* Recurring Toggle */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Repeat className="w-4 h-4 text-muted-foreground" />
-                  <Label htmlFor="edit-recurring" className="text-foreground cursor-pointer">Recurring?</Label>
+            {/* Transfer-specific fields */}
+            {type === 'transfer' && (
+              <>
+                {/* Date Input for Transfer */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-transfer-date" className="text-foreground">Date</Label>
+                  <Input
+                    id="edit-transfer-date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="bg-secondary border-border"
+                  />
                 </div>
-                <Switch
-                  id="edit-recurring"
-                  checked={isRecurring}
-                  onCheckedChange={setIsRecurring}
-                />
-              </div>
 
-              {/* Recurring Options - Only show when toggle is enabled */}
-              {isRecurring && (
-                <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border animate-in fade-in slide-in-from-top-2 duration-200">
-                  {/* Frequency */}
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Frequency</Label>
-                    <Select value={recurringFrequency} onValueChange={setRecurringFrequency}>
-                      <SelectTrigger className="bg-secondary border-border">
-                        <SelectValue placeholder="Select frequency" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border">
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="yearly">Yearly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                {/* Asset Type (Optional) */}
+                <div className="space-y-2">
+                  <Label className="text-foreground">Asset Type</Label>
+                  <Select value={assetType} onValueChange={setAssetType}>
+                    <SelectTrigger className="bg-secondary border-border">
+                      <SelectValue placeholder="Select asset type (optional)" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border">
+                      {assetTypeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  {/* Start Date */}
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Start Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal bg-secondary border-border",
-                            !recurringStartDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {recurringStartDate ? format(recurringStartDate, "PPP") : "Select start date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={recurringStartDate}
-                          onSelect={setRecurringStartDate}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                {/* Asset Name (Optional) */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-asset-name" className="text-foreground">Asset Name</Label>
+                  <Input
+                    id="edit-asset-name"
+                    placeholder="e.g., Vanguard, Robinhood, Ally Savings"
+                    value={assetName}
+                    onChange={(e) => setAssetName(e.target.value)}
+                    className="bg-secondary border-border"
+                  />
+                </div>
+              </>
+            )}
 
-                  {/* End Date (Optional) */}
-                  <div className="space-y-2">
-                    <Label className="text-foreground">End Date (Optional)</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal bg-secondary border-border",
-                            !recurringEndDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {recurringEndDate ? format(recurringEndDate, "PPP") : "No end date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={recurringEndDate}
-                          onSelect={setRecurringEndDate}
-                          disabled={(date) => recurringStartDate ? date < recurringStartDate : false}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    {recurringEndDate && (
+            {/* Non-transfer fields */}
+            {type !== 'transfer' && (
+              <>
+                {/* Category Combobox */}
+                <div className="space-y-2">
+                  <Label className="text-foreground">Category</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={() => setRecurringEndDate(undefined)}
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between bg-secondary border-border font-normal"
                       >
-                        Clear end date
+                        {category || "Select or type a category"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
-                    )}
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0 bg-card border-border" align="start">
+                      <Command className="bg-card">
+                        <CommandInput 
+                          placeholder="Search or type custom..." 
+                          value={category}
+                          onValueChange={setCategory}
+                          className="bg-card"
+                        />
+                        <CommandList>
+                          <CommandEmpty className="py-2 px-4 text-sm text-muted-foreground">
+                            Press enter to use "{category}"
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {categoryOptions.map((cat) => (
+                              <CommandItem
+                                key={cat}
+                                value={cat}
+                                onSelect={(value) => setCategory(value)}
+                                className="cursor-pointer"
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    category === cat ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {cat}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Description Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-description" className="text-foreground">Description</Label>
+                  <Input
+                    id="edit-description"
+                    placeholder="Enter a description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="bg-secondary border-border"
+                  />
+                </div>
+
+                {/* Date Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-date" className="text-foreground">Date</Label>
+                  <Input
+                    id="edit-date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="bg-secondary border-border"
+                  />
+                </div>
+
+                {/* Recurring Toggle */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Repeat className="w-4 h-4 text-muted-foreground" />
+                      <Label htmlFor="edit-recurring" className="text-foreground cursor-pointer">Recurring?</Label>
+                    </div>
+                    <Switch
+                      id="edit-recurring"
+                      checked={isRecurring}
+                      onCheckedChange={setIsRecurring}
+                    />
                   </div>
-                </div>
-              )}
-            </div>
 
-            {/* Payment Type Toggle */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-muted-foreground" />
-                  <Label htmlFor="edit-payment-type-toggle" className="text-foreground cursor-pointer">Add Payment Type?</Label>
-                </div>
-                <Switch
-                  id="edit-payment-type-toggle"
-                  checked={showPaymentType}
-                  onCheckedChange={setShowPaymentType}
-                />
-              </div>
+                  {/* Recurring Options - Only show when toggle is enabled */}
+                  {isRecurring && (
+                    <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border animate-in fade-in slide-in-from-top-2 duration-200">
+                      {/* Frequency */}
+                      <div className="space-y-2">
+                        <Label className="text-foreground">Frequency</Label>
+                        <Select value={recurringFrequency} onValueChange={setRecurringFrequency}>
+                          <SelectTrigger className="bg-secondary border-border">
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="yearly">Yearly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-              {/* Payment Type Options - Only show when toggle is enabled */}
-              {showPaymentType && (
-                <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border animate-in fade-in slide-in-from-top-2 duration-200">
-                  {/* Recent Payment Types */}
-                  {recentPaymentTypes.length > 0 && !paymentType && (
-                    <div className="space-y-2">
-                      <Label className="text-foreground text-sm">Recent</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {recentPaymentTypes.map((recent, index) => (
-                          <Button
-                            key={index}
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="text-xs bg-secondary border-border hover:bg-secondary/80"
-                            onClick={() => {
-                              setPaymentType(recent.paymentType);
-                              if (recent.paymentType === 'credit_card' && recent.creditCardId) {
-                                setSelectedCreditCardId(recent.creditCardId);
-                                setIsAddingNewCard(false);
-                              }
-                              setPaymentDescription(recent.paymentDescription || '');
-                            }}
-                          >
-                            {recent.label}
-                          </Button>
-                        ))}
+                      {/* Start Date */}
+                      <div className="space-y-2">
+                        <Label className="text-foreground">Start Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal bg-secondary border-border",
+                                !recurringStartDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {recurringStartDate ? format(recurringStartDate, "PPP") : "Select start date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={recurringStartDate}
+                              onSelect={setRecurringStartDate}
+                              initialFocus
+                              className="p-3 pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      {/* End Date (Optional) */}
+                      <div className="space-y-2">
+                        <Label className="text-foreground">End Date (Optional)</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal bg-secondary border-border",
+                                !recurringEndDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {recurringEndDate ? format(recurringEndDate, "PPP") : "No end date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={recurringEndDate}
+                              onSelect={setRecurringEndDate}
+                              initialFocus
+                              className="p-3 pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
                   )}
+                </div>
 
-                  {/* Payment Type Select */}
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Payment Type</Label>
-                    <Select value={paymentType} onValueChange={(value) => {
-                      setPaymentType(value);
-                      if (value !== 'credit_card') {
-                        setSelectedCreditCardId('');
-                        setIsAddingNewCard(false);
-                        setNewCardName('');
-                      }
-                    }}>
-                      <SelectTrigger className="bg-secondary border-border">
-                        <SelectValue placeholder="Select payment type" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border">
-                        <SelectItem value="credit_card">Credit Card</SelectItem>
-                        <SelectItem value="debit_card">Debit Card</SelectItem>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="venmo">Venmo</SelectItem>
-                        <SelectItem value="paypal">PayPal</SelectItem>
-                        <SelectItem value="zelle">Zelle</SelectItem>
-                        <SelectItem value="crypto">Crypto</SelectItem>
-                        <SelectItem value="check">Check</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
+                {/* Payment Type Toggle */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-muted-foreground" />
+                      <Label htmlFor="edit-payment-type" className="text-foreground cursor-pointer">Add payment type?</Label>
+                    </div>
+                    <Switch
+                      id="edit-payment-type"
+                      checked={showPaymentType}
+                      onCheckedChange={setShowPaymentType}
+                    />
                   </div>
 
-                  {/* Credit Card Selection - Only show when credit_card is selected */}
-                  {paymentType === 'credit_card' && (
-                    <div className="space-y-2">
-                      <Label className="text-foreground">Select Card</Label>
-                      <Select 
-                        value={isAddingNewCard ? 'add_new' : selectedCreditCardId} 
-                        onValueChange={(value) => {
-                          if (value === 'add_new') {
-                            setIsAddingNewCard(true);
+                  {showPaymentType && (
+                    <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border animate-in fade-in slide-in-from-top-2 duration-200">
+                      {/* Recent Payment Types */}
+                      {recentPaymentTypes.length > 0 && !paymentType && (
+                        <div className="space-y-2">
+                          <Label className="text-foreground text-xs uppercase tracking-wide">Recent</Label>
+                          <div className="flex flex-wrap gap-2">
+                            {recentPaymentTypes.map((recent, index) => (
+                              <Button
+                                key={index}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="bg-secondary border-border"
+                                onClick={() => {
+                                  setPaymentType(recent.paymentType);
+                                  if (recent.creditCardId) {
+                                    setSelectedCreditCardId(recent.creditCardId);
+                                  }
+                                  if (recent.paymentDescription) {
+                                    setPaymentDescription(recent.paymentDescription);
+                                  }
+                                }}
+                              >
+                                {recent.label}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label className="text-foreground">Payment Method</Label>
+                        <Select value={paymentType} onValueChange={(value) => {
+                          setPaymentType(value);
+                          if (value !== 'credit_card') {
                             setSelectedCreditCardId('');
-                          } else {
                             setIsAddingNewCard(false);
-                            setSelectedCreditCardId(value);
                             setNewCardName('');
                           }
-                        }}
-                      >
-                        <SelectTrigger className="bg-secondary border-border">
-                          <SelectValue placeholder="Select a credit card" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-card border-border">
-                          {creditCards.map((card) => (
-                            <SelectItem key={card.id} value={card.id}>
-                              {card.card_name}{card.card_type ? ` (${card.card_type})` : ''}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="add_new" className="text-primary font-medium">
-                            + Add New Credit Card
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+                        }}>
+                          <SelectTrigger className="bg-secondary border-border">
+                            <SelectValue placeholder="Select payment method" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="credit_card">Credit Card</SelectItem>
+                            <SelectItem value="debit_card">Debit Card</SelectItem>
+                            <SelectItem value="cash">Cash</SelectItem>
+                            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                            <SelectItem value="venmo">Venmo</SelectItem>
+                            <SelectItem value="paypal">PayPal</SelectItem>
+                            <SelectItem value="zelle">Zelle</SelectItem>
+                            <SelectItem value="crypto">Crypto</SelectItem>
+                            <SelectItem value="check">Check</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  {/* New Card Input with Identify - Only show when adding new card */}
-                  {paymentType === 'credit_card' && isAddingNewCard && (
-                    <CardIdentifier
-                      cardName={newCardName}
-                      onCardNameChange={setNewCardName}
-                      onCardIdentified={(cardId) => {
-                        setSelectedCreditCardId(cardId);
-                        setIsAddingNewCard(false);
-                      }}
-                      addCreditCard={addCreditCard}
-                      updateCreditCard={updateCard}
-                      lookupCardBenefits={lookupCardBenefits}
-                      inputId="edit-new-card-name"
-                    />
-                  )}
+                      {paymentType === 'credit_card' && (
+                        <div className="space-y-3">
+                          {/* Existing Cards */}
+                          {creditCards.length > 0 && !isAddingNewCard && (
+                            <div className="space-y-2">
+                              <Label className="text-foreground">Select Card</Label>
+                              <Select value={selectedCreditCardId} onValueChange={setSelectedCreditCardId}>
+                                <SelectTrigger className="bg-secondary border-border">
+                                  <SelectValue placeholder="Select a card" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-card border-border">
+                                  {creditCards.map((card) => (
+                                    <SelectItem key={card.id} value={card.id}>
+                                      {card.card_name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
 
-                  {/* Payment Description - Only show for non-credit card types */}
-                  {paymentType !== 'credit_card' && (
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-payment-description" className="text-foreground">Payment Note (Optional)</Label>
-                      <Input
-                        id="edit-payment-description"
-                        placeholder="e.g., ending in 4242"
-                        value={paymentDescription}
-                        onChange={(e) => setPaymentDescription(e.target.value)}
-                        className="bg-secondary border-border"
-                      />
+                          {/* Toggle to add new card */}
+                          {!isAddingNewCard ? (
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingNewCard(true)}
+                              className="text-sm text-primary hover:text-primary/80 transition-colors"
+                            >
+                              + Add new card
+                            </button>
+                          ) : (
+                            <CardIdentifier
+                              cardName={newCardName}
+                              onCardNameChange={setNewCardName}
+                              onCardIdentified={(cardId) => {
+                                setSelectedCreditCardId(cardId);
+                                setIsAddingNewCard(false);
+                              }}
+                              addCreditCard={addCreditCard}
+                              updateCreditCard={updateCard}
+                              lookupCardBenefits={lookupCardBenefits}
+                            />
+                          )}
+
+                          {isAddingNewCard && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsAddingNewCard(false);
+                                setNewCardName('');
+                              }}
+                              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label className="text-foreground">Payment Note (Optional)</Label>
+                        <Input
+                          placeholder="e.g., Split with roommate"
+                          value={paymentDescription}
+                          onChange={(e) => setPaymentDescription(e.target.value)}
+                          className="bg-secondary border-border"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
 
-            {/* Buttons */}
+            {/* Action Buttons */}
             <div className="flex gap-3">
               <Button
                 type="button"
                 variant="destructive"
-                size="icon"
+                className="flex-1"
                 onClick={() => setShowDeleteConfirm(true)}
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
               </Button>
-              <Button
-                type="submit"
-                className="flex-1"
-                variant={type === 'income' ? 'income' : 'expense'}
-                size="lg"
-              >
+              <Button type="submit" className="flex-1">
                 Save Changes
               </Button>
             </div>
@@ -623,6 +701,7 @@ export function EditTransactionModal({
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
