@@ -22,14 +22,16 @@ export function SpendInsights({ transactions }: SpendInsightsProps) {
   const [hasFetched, setHasFetched] = useState(false);
   const { toast } = useToast();
 
-  // Filter to just the serializable data we need
-  const transactionData = transactions.map(t => ({
-    amount: t.amount,
-    category: t.category,
-    date: t.date,
-    description: t.description,
-    type: t.type,
-  }));
+  // Filter to expenses only (exclude transfers) and serialize the data
+  const transactionData = transactions
+    .filter(t => t.type === 'expense')
+    .map(t => ({
+      amount: t.amount,
+      category: t.category,
+      date: t.date,
+      description: t.description,
+      type: t.type,
+    }));
 
   const fetchInsight = useCallback(async () => {
     setLoading(true);

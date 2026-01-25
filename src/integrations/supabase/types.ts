@@ -110,6 +110,8 @@ export type Database = {
       transactions: {
         Row: {
           amount: number
+          asset_name: string | null
+          asset_type: string | null
           category: string
           created_at: string
           credit_card_id: string | null
@@ -127,6 +129,8 @@ export type Database = {
         }
         Insert: {
           amount: number
+          asset_name?: string | null
+          asset_type?: string | null
           category: string
           created_at?: string
           credit_card_id?: string | null
@@ -144,6 +148,8 @@ export type Database = {
         }
         Update: {
           amount?: number
+          asset_name?: string | null
+          asset_type?: string | null
           category?: string
           created_at?: string
           credit_card_id?: string | null

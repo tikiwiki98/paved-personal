@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, ArrowDownRight, ArrowLeft, Search, Repeat, Loader2, ChevronDown, X, CalendarIcon } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, ArrowLeft, Search, Repeat, Loader2, ChevronDown, X, CalendarIcon, TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ const Transactions = () => {
   
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
   const [creditCardFilter, setCreditCardFilter] = useState('all');
@@ -157,6 +157,7 @@ const Transactions = () => {
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="income">Income</SelectItem>
                 <SelectItem value="expense">Expense</SelectItem>
+                <SelectItem value="transfer">Transfer</SelectItem>
               </SelectContent>
             </Select>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -298,51 +299,78 @@ const Transactions = () => {
                   : "No transactions match your filters."}
               </p>
             ) : (
-              filteredTransactions.map((transaction) => (
-                <div
-                  key={transaction.id}
-                  onClick={() => setEditingTransaction(transaction)}
-                  className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 hover:bg-secondary/80 transition-all duration-200 cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
-                        transaction.type === 'income'
-                          ? 'bg-income/20'
-                          : 'bg-expense/20'
-                      }`}
-                    >
-                      {transaction.type === 'income' ? (
-                        <ArrowUpRight className="w-5 h-5 text-income" />
-                      ) : (
-                        <ArrowDownRight className="w-5 h-5 text-expense" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-medium text-foreground">{transaction.description}</p>
-                        {transaction.is_recurring && (
-                          <Repeat className="w-3.5 h-3.5 text-primary" />
-                        )}
+              filteredTransactions.map((transaction) => {
+                const getIcon = () => {
+                  switch (transaction.type) {
+                    case 'income':
+                      return <ArrowUpRight className="w-5 h-5 text-income" />;
+                    case 'expense':
+                      return <ArrowDownRight className="w-5 h-5 text-expense" />;
+                    case 'transfer':
+                      return <TrendingUp className="w-5 h-5 text-primary" />;
+                  }
+                };
+                const getBg = () => {
+                  switch (transaction.type) {
+                    case 'income': return 'bg-income/20';
+                    case 'expense': return 'bg-expense/20';
+                    case 'transfer': return 'bg-primary/20';
+                  }
+                };
+                const getColor = () => {
+                  switch (transaction.type) {
+                    case 'income': return 'text-income';
+                    case 'expense': return 'text-expense';
+                    case 'transfer': return 'text-primary';
+                  }
+                };
+                const getPrefix = () => {
+                  switch (transaction.type) {
+                    case 'income': return '+';
+                    case 'expense': return '-';
+                    case 'transfer': return '→';
+                  }
+                };
+
+                return (
+                  <div
+                    key={transaction.id}
+                    onClick={() => setEditingTransaction(transaction)}
+                    className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 hover:bg-secondary/80 transition-all duration-200 cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${getBg()}`}
+                      >
+                        {getIcon()}
                       </div>
-                      <p className="text-sm text-muted-foreground">{transaction.category}</p>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium text-foreground">{transaction.description}</p>
+                          {transaction.is_recurring && (
+                            <Repeat className="w-3.5 h-3.5 text-primary" />
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {transaction.type === 'transfer' && transaction.asset_type 
+                            ? `Transfer · ${transaction.asset_type.replace('_', ' ')}`
+                            : transaction.category
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-bold ${getColor()}`}>
+                        {getPrefix()}$
+                        {transaction.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(parseISO(transaction.date), 'MMM d, yyyy')}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p
-                      className={`font-bold ${
-                        transaction.type === 'income' ? 'text-income' : 'text-expense'
-                      }`}
-                    >
-                      {transaction.type === 'income' ? '+' : '-'}$
-                      {transaction.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(parseISO(transaction.date), 'MMM d, yyyy')}
-                    </p>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </Card>
