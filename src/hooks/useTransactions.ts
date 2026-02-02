@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Transaction } from '@/types/budget';
 import { useToast } from '@/hooks/use-toast';
+import { expandAllRecurringTransactions } from '@/lib/recurringTransactions';
 
 export function useTransactions() {
   const { user } = useAuth();
@@ -23,10 +24,10 @@ export function useTransactions() {
       
       if (error) throw error;
       
-      return data.map((t) => ({
+      const rawTransactions = data.map((t) => ({
         id: t.id,
         amount: Number(t.amount),
-        type: t.type as 'income' | 'expense',
+        type: t.type as 'income' | 'expense' | 'transfer',
         category: t.category,
         description: t.description,
         date: t.date,
@@ -37,7 +38,12 @@ export function useTransactions() {
         payment_type: t.payment_type ?? undefined,
         payment_description: t.payment_description ?? undefined,
         credit_card_id: t.credit_card_id ?? undefined,
+        asset_type: t.asset_type ?? undefined,
+        asset_name: t.asset_name ?? undefined,
       })) as Transaction[];
+      
+      // Expand recurring transactions into individual instances
+      return expandAllRecurringTransactions(rawTransactions);
     },
     enabled: !!user,
   });
