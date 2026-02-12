@@ -6,12 +6,10 @@ import { SummaryRangeSelector } from '@/components/SummaryRangeSelector';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 import { ChartDrilldownSheet } from '@/components/charts/ChartDrilldownSheet';
-import { Button } from '@/components/ui/button';
-import { ChevronRight } from 'lucide-react';
 import {
   format, parseISO, startOfDay, eachDayOfInterval,
   startOfWeek, eachWeekOfInterval, endOfWeek,
-  startOfMonth, eachMonthOfInterval, endOfMonth,
+  startOfMonth, eachMonthOfInterval,
 } from 'date-fns';
 
 interface SpendingOverTimeChartProps {
@@ -30,42 +28,14 @@ interface DataPoint {
   grouping: GroupingMode;
 }
 
-// Custom tooltip with drilldown button
-function SpendingTooltip({
-  active,
-  payload,
-  onDrilldown,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: DataPoint }>;
-  label?: string;
-  onDrilldown: (point: DataPoint) => void;
-}) {
+// Display-only tooltip (no button)
+function SimpleTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: DataPoint }> }) {
   if (!active || !payload || payload.length === 0) return null;
-
   const point = payload[0].payload;
-
   return (
-    <div
-      className="bg-popover border border-border rounded-xl p-3 shadow-lg"
-      style={{ pointerEvents: 'auto' }}
-    >
+    <div className="bg-popover border border-border rounded-xl p-3 shadow-lg">
       <p className="text-sm font-medium text-foreground mb-1">{point.date}</p>
-      <p className="text-lg font-semibold text-foreground">
-        ${point.amount.toLocaleString()}
-      </p>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="mt-2 w-full justify-between text-xs h-7 text-muted-foreground hover:text-foreground"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDrilldown(point);
-        }}
-      >
-        Transaction details
-        <ChevronRight className="h-3 w-3" />
-      </Button>
+      <p className="text-lg font-semibold text-foreground">${point.amount.toLocaleString()}</p>
     </div>
   );
 }
@@ -78,15 +48,12 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
 
   const rentFilteredTransactions = useMemo(() => filterRent(transactions), [transactions, filterRent]);
 
-  const { data, filteredExpenses, groupingMode } = useMemo(() => {
+  const data = useMemo(() => {
     const filteredTransactions = filterTransactionsByRange(rentFilteredTransactions, range);
-
-    if (filteredTransactions.length === 0)
-      return { data: [] as DataPoint[], filteredExpenses: [] as Transaction[], groupingMode: 'daily' as GroupingMode };
+    if (filteredTransactions.length === 0) return [] as DataPoint[];
 
     const expenses = filteredTransactions.filter((t) => t.type === 'expense');
-    if (expenses.length === 0)
-      return { data: [] as DataPoint[], filteredExpenses: expenses, groupingMode: 'daily' as GroupingMode };
+    if (expenses.length === 0) return [] as DataPoint[];
 
     const dates = expenses.map((t) => parseISO(t.date));
     const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
@@ -123,7 +90,7 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
       expensesByInterval[key] = (expensesByInterval[key] || 0) + t.amount;
     });
 
-    const chartData: DataPoint[] = intervals.map((intervalDate) => {
+    return intervals.map((intervalDate) => {
       const key = daysDiff <= 90
         ? format(daysDiff <= 31 ? startOfDay(intervalDate) : startOfWeek(intervalDate), 'yyyy-MM-dd')
         : format(startOfMonth(intervalDate), 'yyyy-MM');
@@ -134,18 +101,17 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
         amount: expensesByInterval[key] || 0,
         intervalKey: key,
         grouping: mode,
-      };
+      } as DataPoint;
     });
-
-    return { data: chartData, filteredExpenses: expenses, groupingMode: mode };
   }, [rentFilteredTransactions, range]);
 
-  const handleDrilldown = useCallback((point: DataPoint) => {
-    // Filter expenses that belong to this interval
+  const handleChartClick = useCallback((chartData: any) => {
+    if (!chartData?.activePayload?.[0]) return;
+    const point: DataPoint = chartData.activePayload[0].payload;
+
     const filtered = rentFilteredTransactions.filter((t) => {
       if (t.type !== 'expense') return false;
       const txDate = parseISO(t.date);
-
       if (point.grouping === 'daily') {
         return format(startOfDay(txDate), 'yyyy-MM-dd') === point.intervalKey;
       } else if (point.grouping === 'weekly') {
@@ -156,9 +122,7 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
     });
 
     let title: string;
-    if (point.grouping === 'daily') {
-      title = `Transactions – ${point.date}`;
-    } else if (point.grouping === 'weekly') {
+    if (point.grouping === 'weekly') {
       const weekStart = parseISO(point.intervalKey);
       const weekEnd = endOfWeek(weekStart);
       title = `Transactions – ${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d')}`;
@@ -197,7 +161,7 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
 
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+            <LineChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }} onClick={handleChartClick}>
               <XAxis
                 dataKey="date"
                 axisLine={false}
@@ -221,8 +185,7 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
               />
               <Tooltip
                 cursor={{ stroke: 'hsl(220, 20%, 30%)', strokeWidth: 1, strokeDasharray: '4 4' }}
-                content={<SpendingTooltip onDrilldown={handleDrilldown} />}
-                wrapperStyle={{ pointerEvents: 'auto' }}
+                content={<SimpleTooltip />}
               />
               <Line
                 type="monotone"
@@ -235,7 +198,9 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
                   fill: EXPENSE_COLOR,
                   stroke: 'hsl(220, 28%, 12%)',
                   strokeWidth: 2,
+                  cursor: 'pointer',
                 }}
+                cursor="pointer"
               />
             </LineChart>
           </ResponsiveContainer>
