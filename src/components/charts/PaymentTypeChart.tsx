@@ -2,8 +2,18 @@ import { useMemo, useState, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card } from '@/components/ui/card';
 import { Transaction } from '@/types/budget';
-import { ChartTooltipWithDrilldown } from './ChartTooltipWithDrilldown';
 import { ChartDrilldownSheet } from './ChartDrilldownSheet';
+
+// Display-only tooltip
+function SimpleBarTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div className="bg-popover border border-border rounded-xl p-3 shadow-lg">
+      <p className="text-sm font-medium text-foreground mb-1">{label}</p>
+      <p className="text-lg font-semibold text-foreground">${payload[0].value.toLocaleString()}</p>
+    </div>
+  );
+}
 
 interface PaymentTypeChartProps {
   transactions: Transaction[];
@@ -59,7 +69,9 @@ export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
     );
   }, [transactions, selectedType]);
 
-  const handleDrilldown = useCallback((label: string) => {
+  const handleChartClick = useCallback((chartData: any) => {
+    if (!chartData?.activePayload?.[0]) return;
+    const label = chartData.activePayload[0].payload.name as string;
     setSelectedType(label);
     setDrilldownOpen(true);
   }, []);
@@ -81,7 +93,7 @@ export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
         <h3 className="text-lg font-semibold text-foreground mb-4">Spending by Payment Type</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 10, right: 20, left: 20, bottom: 30 }}>
+            <BarChart data={data} margin={{ top: 10, right: 20, left: 20, bottom: 30 }} onClick={handleChartClick}>
               <XAxis
                 dataKey="name"
                 axisLine={false}
@@ -105,14 +117,14 @@ export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
               />
               <Tooltip
                 cursor={false}
-                content={<ChartTooltipWithDrilldown onDrilldown={handleDrilldown} />}
-                wrapperStyle={{ pointerEvents: 'auto' }}
+                content={<SimpleBarTooltip />}
               />
-              <Bar 
-                dataKey="value" 
+              <Bar
+                dataKey="value"
                 fill={EXPENSE_COLOR}
                 radius={[4, 4, 0, 0]}
                 activeBar={false}
+                cursor="pointer"
               />
             </BarChart>
           </ResponsiveContainer>

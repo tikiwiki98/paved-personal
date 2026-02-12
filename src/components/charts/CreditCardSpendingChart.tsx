@@ -5,7 +5,6 @@ import { Transaction, CreditCard } from '@/types/budget';
 import { Link } from 'react-router-dom';
 import { Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ChartTooltipWithDrilldown } from './ChartTooltipWithDrilldown';
 import { ChartDrilldownSheet } from './ChartDrilldownSheet';
 
 interface CreditCardSpendingChartProps {
@@ -15,6 +14,17 @@ interface CreditCardSpendingChartProps {
 
 const EXPENSE_COLOR = 'hsl(220, 60%, 45%)';
 
+// Display-only tooltip
+function SimpleBarTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div className="bg-popover border border-border rounded-xl p-3 shadow-lg">
+      <p className="text-sm font-medium text-foreground mb-1">{label}</p>
+      <p className="text-lg font-semibold text-foreground">${payload[0].value.toLocaleString()}</p>
+    </div>
+  );
+}
+
 export function CreditCardSpendingChart({
   transactions,
   creditCards,
@@ -23,7 +33,6 @@ export function CreditCardSpendingChart({
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
 
   const data = useMemo(() => {
-    // Group by credit_card_id for accurate aggregation
     const expensesByCardId = transactions
       .filter((t) => t.type === 'expense' && t.credit_card_id)
       .reduce((acc, t) => {
@@ -35,7 +44,6 @@ export function CreditCardSpendingChart({
     return Object.entries(expensesByCardId)
       .map(([cardId, value]) => {
         const matchedCard = creditCards.find((c) => c.id === cardId);
-
         return {
           name: matchedCard?.card_name || 'Unknown Card',
           cardId,
@@ -54,8 +62,10 @@ export function CreditCardSpendingChart({
     );
   }, [transactions, selectedCard, data]);
 
-  const handleDrilldown = useCallback((cardName: string) => {
-    setSelectedCard(cardName);
+  const handleChartClick = useCallback((chartData: any) => {
+    if (!chartData?.activePayload?.[0]) return;
+    const name = chartData.activePayload[0].payload.name as string;
+    setSelectedCard(name);
     setDrilldownOpen(true);
   }, []);
 
@@ -99,7 +109,7 @@ export function CreditCardSpendingChart({
         </div>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 10, right: 20, left: 20, bottom: 30 }}>
+            <BarChart data={data} margin={{ top: 10, right: 20, left: 20, bottom: 30 }} onClick={handleChartClick}>
               <XAxis
                 dataKey="name"
                 axisLine={false}
@@ -123,14 +133,14 @@ export function CreditCardSpendingChart({
               />
               <Tooltip
                 cursor={false}
-                content={<ChartTooltipWithDrilldown onDrilldown={handleDrilldown} />}
-                wrapperStyle={{ pointerEvents: 'auto' }}
+                content={<SimpleBarTooltip />}
               />
-              <Bar 
-                dataKey="value" 
+              <Bar
+                dataKey="value"
                 fill={EXPENSE_COLOR}
                 radius={[4, 4, 0, 0]}
                 activeBar={false}
+                cursor="pointer"
               />
             </BarChart>
           </ResponsiveContainer>

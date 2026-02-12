@@ -2,7 +2,6 @@ import { useMemo, useState, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card } from '@/components/ui/card';
 import { Transaction, Category } from '@/types/budget';
-import { ChartTooltipWithDrilldown } from './ChartTooltipWithDrilldown';
 import { ChartDrilldownSheet } from './ChartDrilldownSheet';
 
 interface CategoryBarChartProps {
@@ -11,6 +10,17 @@ interface CategoryBarChartProps {
 }
 
 const EXPENSE_COLOR = 'hsl(220, 60%, 45%)';
+
+// Display-only tooltip
+function SimpleBarTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div className="bg-popover border border-border rounded-xl p-3 shadow-lg">
+      <p className="text-sm font-medium text-foreground mb-1">{label}</p>
+      <p className="text-lg font-semibold text-foreground">${payload[0].value.toLocaleString()}</p>
+    </div>
+  );
+}
 
 export function CategoryBarChart({ transactions, categories }: CategoryBarChartProps) {
   const [drilldownOpen, setDrilldownOpen] = useState(false);
@@ -25,10 +35,7 @@ export function CategoryBarChart({ transactions, categories }: CategoryBarChartP
       }, {} as Record<string, number>);
 
     return Object.entries(expensesByCategory)
-      .map(([name, value]) => ({
-        name,
-        value,
-      }))
+      .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 8);
   }, [transactions, categories]);
@@ -40,8 +47,10 @@ export function CategoryBarChart({ transactions, categories }: CategoryBarChartP
     );
   }, [transactions, selectedCategory]);
 
-  const handleDrilldown = useCallback((categoryName: string) => {
-    setSelectedCategory(categoryName);
+  const handleChartClick = useCallback((chartData: any) => {
+    if (!chartData?.activePayload?.[0]) return;
+    const name = chartData.activePayload[0].payload.name as string;
+    setSelectedCategory(name);
     setDrilldownOpen(true);
   }, []);
 
@@ -62,7 +71,7 @@ export function CategoryBarChart({ transactions, categories }: CategoryBarChartP
         <h3 className="text-lg font-semibold text-foreground mb-4">Spend by Category</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 70, bottom: 5 }}>
+            <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 70, bottom: 5 }} onClick={handleChartClick}>
               <XAxis
                 type="number"
                 axisLine={false}
@@ -87,15 +96,15 @@ export function CategoryBarChart({ transactions, categories }: CategoryBarChartP
               />
               <Tooltip
                 cursor={false}
-                content={<ChartTooltipWithDrilldown onDrilldown={handleDrilldown} />}
-                wrapperStyle={{ pointerEvents: 'auto' }}
+                content={<SimpleBarTooltip />}
               />
-              <Bar 
-                dataKey="value" 
+              <Bar
+                dataKey="value"
                 fill={EXPENSE_COLOR}
-                radius={[0, 4, 4, 0]} 
+                radius={[0, 4, 4, 0]}
                 barSize={20}
                 activeBar={false}
+                cursor="pointer"
               />
             </BarChart>
           </ResponsiveContainer>
