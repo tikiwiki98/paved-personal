@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { IncludeRentToggle } from '@/components/IncludeRentToggle';
@@ -7,16 +7,16 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
 import { Loader2 } from 'lucide-react';
-import { SpendVsBudgetChart } from '@/components/budget/SpendVsBudgetChart';
 import { CategorySpendList } from '@/components/budget/CategorySpendList';
+import { getDateRangeStart } from '@/lib/dateRangeUtils';
+import { startOfDay } from 'date-fns';
 
 const Budget = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { transactions, isLoading: transactionsLoading } = useTransactions();
   const { categories, isLoading: categoriesLoading, upsertBudget } = useCategories(transactions, 'monthly');
-  const { initializeWithTransactions } = useTimeFrame();
-  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const { initializeWithTransactions, range, includeRent } = useTimeFrame();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -41,9 +41,44 @@ const Budget = () => {
     return lookup;
   }, [categories]);
 
-  const handleCategoryClick = (categoryName: string) => {
-    setEditingCategory(categoryName);
-  };
+  // Summary stats
+  const { totalSpent, totalBudgeted, overCount } = useMemo(() => {
+    const startDate = getDateRangeStart(range);
+    const endDate = startOfDay(new Date());
+
+    const filtered = transactions.filter(t => {
+      const txDate = new Date(t.date);
+      const withinRange = txDate >= startDate && txDate <= endDate;
+      const rentFilter = includeRent || t.category !== 'Rent';
+      return t.type === 'expense' && withinRange && rentFilter;
+    });
+
+    const spendByCat: Record<string, number> = {};
+    filtered.forEach(t => {
+      spendByCat[t.category] = (spendByCat[t.category] || 0) + t.amount;
+    });
+
+    let spent = 0;
+    let budgeted = 0;
+    let over = 0;
+
+    Object.keys(spendByCat).forEach(cat => {
+      spent += spendByCat[cat];
+      if (budgets[cat]) {
+        budgeted += budgets[cat];
+        if (spendByCat[cat] > budgets[cat]) over++;
+      }
+    });
+
+    // Include budgeted categories with no spend
+    Object.keys(budgets).forEach(cat => {
+      if (!spendByCat[cat]) {
+        budgeted += budgets[cat];
+      }
+    });
+
+    return { totalSpent: spent, totalBudgeted: budgeted, overCount: over };
+  }, [transactions, budgets, range, includeRent]);
 
   if (authLoading || transactionsLoading || categoriesLoading) {
     return (
@@ -59,29 +94,40 @@ const Budget = () => {
 
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-6 md:py-8">
-        {/* Top Controls */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h2 className="text-2xl font-bold text-foreground">Monthly Spending</h2>
+      <div className="container mx-auto px-4 py-6 md:py-8 max-w-2xl">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">Spending & Budgets</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Set targets by category. We'll show how you're doing vs your plan.
+            </p>
+          </div>
           <IncludeRentToggle />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Spend vs Budget Chart */}
-          <SpendVsBudgetChart 
-            transactions={transactions}
-            budgets={budgets}
-            onCategoryClick={handleCategoryClick}
-          />
+        {/* Summary strip */}
+        {totalBudgeted > 0 && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mb-6 mt-3">
+            <span>
+              <span className="font-semibold text-foreground">${totalSpent.toLocaleString()}</span> spent of{' '}
+              <span className="font-semibold text-foreground">${totalBudgeted.toLocaleString()}</span> budgeted
+            </span>
+            {overCount > 0 && (
+              <span className="text-accent font-medium">
+                Over in {overCount} {overCount === 1 ? 'category' : 'categories'}
+              </span>
+            )}
+          </div>
+        )}
 
-          {/* Category Spend List with inline budget editing */}
-          <CategorySpendList 
+        {/* Category List */}
+        <div className={totalBudgeted === 0 ? 'mt-6' : ''}>
+          <CategorySpendList
             categories={categories}
             transactions={transactions}
             budgets={budgets}
             onUpdateBudget={upsertBudget}
-            editingCategory={editingCategory}
-            setEditingCategory={setEditingCategory}
           />
         </div>
       </div>
