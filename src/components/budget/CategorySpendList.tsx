@@ -4,18 +4,16 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Category } from '@/types/budget';
-import { Pencil, Check, X, Plus } from 'lucide-react';
+import { Pencil, Check, X, Plus, Lightbulb } from 'lucide-react';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
 import { getDateRangeStart } from '@/lib/dateRangeUtils';
-import { startOfDay } from 'date-fns';
+import { startOfDay, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 interface CategorySpendListProps {
   categories: Category[];
   transactions: { type: string; category: string; amount: number; date: string }[];
   budgets: Record<string, number>;
   onUpdateBudget: (params: { category: string; amount: number }) => void;
-  editingCategory: string | null;
-  setEditingCategory: (category: string | null) => void;
 }
 
 export function CategorySpendList({ 
@@ -23,9 +21,8 @@ export function CategorySpendList({
   transactions, 
   budgets, 
   onUpdateBudget,
-  editingCategory,
-  setEditingCategory,
 }: CategorySpendListProps) {
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const { includeRent, range } = useTimeFrame();
 
@@ -48,13 +45,65 @@ export function CategorySpendList({
     return spend;
   }, [transactions, range, includeRent]);
 
+  // Compute suggested monthly budget per category (avg over past 3-6 months)
+  const suggestedBudgets = useMemo(() => {
+    const now = new Date();
+    const suggestions: Record<string, number | null> = {};
+
+    // Look back up to 6 months, require at least 1 full prior month
+    const lookbackMonths = 6;
+    const monthlySpend: Record<string, number[]> = {};
+
+    for (let i = 1; i <= lookbackMonths; i++) {
+      const monthStart = startOfMonth(subMonths(now, i));
+      const monthEnd = endOfMonth(subMonths(now, i));
+
+      const monthTxns = transactions.filter(t => {
+        const txDate = new Date(t.date);
+        return t.type === 'expense' && isWithinInterval(txDate, { start: monthStart, end: monthEnd });
+      });
+
+      monthTxns.forEach(t => {
+        if (!monthlySpend[t.category]) monthlySpend[t.category] = [];
+        // We need to track by month index
+      });
+    }
+
+    // Better approach: compute total per category per month, then average
+    const catMonths: Record<string, Record<number, number>> = {};
+
+    for (let i = 1; i <= lookbackMonths; i++) {
+      const monthStart = startOfMonth(subMonths(now, i));
+      const monthEnd = endOfMonth(subMonths(now, i));
+
+      const monthTxns = transactions.filter(t => {
+        const txDate = new Date(t.date);
+        const rentFilter = includeRent || t.category !== 'Rent';
+        return t.type === 'expense' && rentFilter && isWithinInterval(txDate, { start: monthStart, end: monthEnd });
+      });
+
+      monthTxns.forEach(t => {
+        if (!catMonths[t.category]) catMonths[t.category] = {};
+        catMonths[t.category][i] = (catMonths[t.category][i] || 0) + t.amount;
+      });
+    }
+
+    Object.entries(catMonths).forEach(([cat, months]) => {
+      const monthValues = Object.values(months);
+      if (monthValues.length >= 1) {
+        const avg = monthValues.reduce((a, b) => a + b, 0) / monthValues.length;
+        suggestions[cat] = Math.round(avg);
+      }
+    });
+
+    return suggestions;
+  }, [transactions, includeRent]);
+
   // Get all categories with spend (even if no budget)
   const categoriesWithSpend = useMemo(() => {
-    // Get all unique categories from transactions
     const allCategoryNames = new Set<string>();
     Object.keys(spendByCategory).forEach(name => allCategoryNames.add(name));
     
-    // Create merged list
     const merged = Array.from(allCategoryNames).map(name => {
       const existing = categories.find(c => c.name === name);
       const spent = spendByCategory[name] || 0;
@@ -71,7 +120,6 @@ export function CategorySpendList({
       };
     });
 
-    // Sort by spend descending
     return merged.sort((a, b) => b.spent - a.spent);
   }, [categories, spendByCategory, budgets]);
 
@@ -92,14 +140,13 @@ export function CategorySpendList({
     setEditValue('');
   };
 
+  const handleUseSuggestion = (amount: number) => {
+    setEditValue(amount.toString());
+  };
+
   return (
     <Card className="gradient-card border-border/50 p-6 shadow-card animate-slide-up" style={{ animationDelay: '0.1s' }}>
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-foreground mb-1">All Categories</h3>
-        <p className="text-sm text-muted-foreground">Your spending with optional budgets</p>
-      </div>
-
-      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+      <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
         {categoriesWithSpend.length === 0 ? (
           <p className="text-center text-muted-foreground py-4">No spending data for this period.</p>
         ) : (
@@ -107,6 +154,7 @@ export function CategorySpendList({
             const percentage = category.budget > 0 ? (category.spent / category.budget) * 100 : 0;
             const isOverBudget = category.budget > 0 && category.spent > category.budget;
             const isEditing = editingCategory === category.name;
+            const suggestion = suggestedBudgets[category.name];
 
             return (
               <div
@@ -178,12 +226,28 @@ export function CategorySpendList({
                       onClick={() => handleStartEdit(category.name, 0)}
                     >
                       <Plus className="w-3 h-3" />
-                      Set budget
+                      Set target
                     </Button>
                   )}
                 </div>
 
-                {category.hasBudget && (
+                {/* Suggestion when editing */}
+                {isEditing && suggestion && suggestion > 0 && (
+                  <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+                    <Lightbulb className="w-3 h-3 shrink-0" />
+                    <span>Suggested: ${suggestion.toLocaleString()}/mo (avg spending)</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-5 text-[10px] px-2 py-0"
+                      onClick={() => handleUseSuggestion(suggestion)}
+                    >
+                      Use
+                    </Button>
+                  </div>
+                )}
+
+                {category.hasBudget && !isEditing && (
                   <>
                     <Progress
                       value={Math.min(percentage, 100)}
