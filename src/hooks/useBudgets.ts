@@ -54,6 +54,8 @@ export function useBudgets(timeframe: BudgetTimeframe = 'monthly') {
     enabled: !!user,
   });
 
+  const budgetsQueryKey = ['budgets', user?.id, timeframe] as const;
+
   const upsertBudget = useMutation({
     mutationFn: async ({ category, amount }: { category: string; amount: number }) => {
       if (!user) throw new Error('User not authenticated');
@@ -82,8 +84,30 @@ export function useBudgets(timeframe: BudgetTimeframe = 'monthly') {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets', user?.id] });
+    onSuccess: (_, { category, amount }) => {
+      // Optimistically update the cache so the UI reflects the new budget immediately
+      queryClient.setQueryData(budgetsQueryKey, (old: Budget[] | undefined) => {
+        if (!old) return old;
+        const index = old.findIndex((b) => b.category === category);
+        if (index >= 0) {
+          const next = [...old];
+          next[index] = { ...next[index], amount };
+          return next;
+        }
+        return [
+          ...old,
+          {
+            id: `temp-${category}`,
+            user_id: user!.id,
+            category,
+            amount,
+            timeframe,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as Budget,
+        ];
+      });
+      queryClient.invalidateQueries({ queryKey: budgetsQueryKey });
       toast({
         title: 'Budget updated',
         description: 'Your budget has been saved.',
@@ -112,7 +136,7 @@ export function useBudgets(timeframe: BudgetTimeframe = 'monthly') {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets', user?.id] });
+      queryClient.invalidateQueries({ queryKey: budgetsQueryKey });
       toast({
         title: 'Budget removed',
         description: 'Your budget has been removed.',
