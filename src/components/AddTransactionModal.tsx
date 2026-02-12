@@ -39,7 +39,13 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState<string>(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  });
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringFrequency, setRecurringFrequency] = useState<string>('monthly');
   const [recurringStartDate, setRecurringStartDate] = useState<Date | undefined>(undefined);
@@ -130,7 +136,11 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
     setAmount('');
     setCategory('');
     setDescription('');
-    setDate(new Date().toISOString().split('T')[0]);
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    setDate(`${year}-${month}-${day}`);
     setIsRecurring(false);
     setRecurringFrequency('monthly');
     setRecurringStartDate(undefined);
