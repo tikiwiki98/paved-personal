@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { useCreditCards } from '@/hooks/useCreditCards';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { CardIdentifier } from '@/components/CardIdentifier';
 
 interface AddTransactionModalProps {
@@ -464,7 +464,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                         align="start"
                         onOpenAutoFocus={(e) => e.preventDefault()}
                       >
-                        <ScrollArea className="h-[200px]">
+                        <div className="h-[200px] overflow-y-auto overflow-x-hidden overscroll-contain">
                           <div className="p-2 space-y-1">
                             {recentCategories.length > 0 ? (
                               recentCategories.map((cat) => (
@@ -481,7 +481,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                               <p className="px-3 py-2 text-sm text-muted-foreground">No recent categories</p>
                             )}
                           </div>
-                        </ScrollArea>
+                        </div>
                         <div className="border-t border-border sticky bottom-0 bg-card p-2">
                           <button
                             type="button"
@@ -518,7 +518,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                         align="start"
                         onOpenAutoFocus={(e) => e.preventDefault()}
                       >
-                        <ScrollArea className="h-[200px]">
+                        <div className="h-[200px] overflow-y-auto overflow-x-hidden overscroll-contain">
                           <div className="p-2 space-y-1">
                             {allCategoryOptions.map((cat) => (
                               <button
@@ -531,7 +531,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                               </button>
                             ))}
                           </div>
-                        </ScrollArea>
+                        </div>
                         <div className="border-t border-border sticky bottom-0 bg-card p-2">
                           <button
                             type="button"
