@@ -5,6 +5,7 @@ import { IncludeRentToggle } from '@/components/IncludeRentToggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
+import { useBudgets } from '@/hooks/useBudgets';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
 import { Loader2 } from 'lucide-react';
 import { CategorySpendList } from '@/components/budget/CategorySpendList';
@@ -16,6 +17,7 @@ const Budget = () => {
   const navigate = useNavigate();
   const { transactions, isLoading: transactionsLoading } = useTransactions();
   const { categories, isLoading: categoriesLoading, upsertBudget } = useCategories(transactions, 'monthly');
+  const { budgets: budgetsArray, isLoading: budgetsLoading } = useBudgets('monthly');
   const { initializeWithTransactions, range, includeRent } = useTimeFrame();
 
   useEffect(() => {
@@ -30,16 +32,16 @@ const Budget = () => {
     }
   }, [transactions, transactionsLoading, initializeWithTransactions]);
 
-  // Create budgets lookup from categories
+  // Build budgets lookup from the actual budgets table data (not just categories)
   const budgets = useMemo(() => {
     const lookup: Record<string, number> = {};
-    categories.forEach(c => {
-      if (c.budget > 0) {
-        lookup[c.name] = c.budget;
+    budgetsArray.forEach(b => {
+      if (b.amount > 0) {
+        lookup[b.category] = b.amount;
       }
     });
     return lookup;
-  }, [categories]);
+  }, [budgetsArray]);
 
   // Summary stats
   const { totalSpent, totalBudgeted, overCount } = useMemo(() => {
@@ -80,7 +82,7 @@ const Budget = () => {
     return { totalSpent: spent, totalBudgeted: budgeted, overCount: over };
   }, [transactions, budgets, range, includeRent]);
 
-  if (authLoading || transactionsLoading || categoriesLoading) {
+  if (authLoading || transactionsLoading || categoriesLoading || budgetsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
