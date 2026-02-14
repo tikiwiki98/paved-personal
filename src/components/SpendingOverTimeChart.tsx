@@ -95,8 +95,11 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
         ? format(daysDiff <= 31 ? startOfDay(intervalDate) : startOfWeek(intervalDate), 'yyyy-MM-dd')
         : format(startOfMonth(intervalDate), 'yyyy-MM');
 
+      // If interval start is before earliest transaction, use earliest date for display label
+      const displayDate = intervalDate < minDate ? minDate : intervalDate;
+
       return {
-        date: format(intervalDate, formatStr),
+        date: format(displayDate, formatStr),
         fullDate: intervalDate,
         amount: expensesByInterval[key] || 0,
         intervalKey: key,
