@@ -145,7 +145,7 @@ export function CategorySpendList({
   };
 
   return (
-    <Card className="bg-card border-border p-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+    <Card className="bg-card border-border p-6 animate-fade-in">
       <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
         {categoriesWithSpend.length === 0 ? (
           <p className="text-center text-muted-foreground py-4">No spending data for this period.</p>
