@@ -464,7 +464,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                         align="start"
                         onOpenAutoFocus={(e) => e.preventDefault()}
                       >
-                        <div className="h-[200px] overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y" style={{ WebkitOverflowScrolling: 'touch', transform: 'translateZ(0)' }} onTouchStart={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}>
+                        <div className="h-[200px] overflow-y-scroll overflow-x-hidden overscroll-contain touch-pan-y mobile-visible-scrollbar" style={{ WebkitOverflowScrolling: 'touch', transform: 'translateZ(0)' }} onTouchMove={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}>
                           <div className="p-2 space-y-1">
                             {recentCategories.length > 0 ? (
                               recentCategories.map((cat) => (
@@ -518,7 +518,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                         align="start"
                         onOpenAutoFocus={(e) => e.preventDefault()}
                       >
-                        <div className="h-[200px] overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y" style={{ WebkitOverflowScrolling: 'touch', transform: 'translateZ(0)' }} onTouchStart={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}>
+                        <div className="h-[200px] overflow-y-scroll overflow-x-hidden overscroll-contain touch-pan-y mobile-visible-scrollbar" style={{ WebkitOverflowScrolling: 'touch', transform: 'translateZ(0)' }} onTouchMove={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}>
                           <div className="p-2 space-y-1">
                             {allCategoryOptions.map((cat) => (
                               <button
