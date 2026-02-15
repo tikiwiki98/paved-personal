@@ -22,7 +22,7 @@ export default function Landing() {
           <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center border border-border">
             <Wallet className="w-5 h-5 text-muted-foreground" />
           </div>
-          <span className="text-xl font-bold text-foreground">Paved</span>
+          <span className="text-lg font-bold text-foreground">Paved</span>
         </div>
         <Link to="/auth?mode=login">
           <Button variant="ghost" size="sm">Sign in</Button>
@@ -45,14 +45,14 @@ export default function Landing() {
         </div>
 
         {/* Benefits */}
-        <div className="grid gap-4 sm:grid-cols-3 w-full max-w-lg animate-slide-up">
+        <div className="grid gap-4 sm:grid-cols-3 w-full max-w-lg animate-fade-in" style={{ animationDelay: '0.15s' }}>
           <BenefitItem icon={TrendingUp} text="Track every dollar in and out" />
           <BenefitItem icon={Target} text="Set budgets and stay on track" />
           <BenefitItem icon={PieChart} text="See trends at a glance" />
         </div>
 
         {/* CTAs */}
-        <div className="flex flex-col items-center gap-3 animate-slide-up">
+        <div className="flex flex-col items-center gap-3 animate-fade-in" style={{ animationDelay: '0.3s' }}>
           <Link to="/auth?mode=signup">
             <Button size="lg" className="shadow-glow text-base px-8">
               Get started — it's free

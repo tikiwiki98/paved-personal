@@ -67,7 +67,7 @@ const Trends = () => {
               <TrendingUp className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-foreground">Spending Trends</h1>
+              <h1 className="text-xl font-bold text-foreground">Spending Trends</h1>
               <p className="text-sm text-muted-foreground">
                 ${totalExpenses.toLocaleString()} total expenses ({rangeLabel})
               </p>

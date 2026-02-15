@@ -42,7 +42,7 @@ export function BalanceCard({ transactions }: BalanceCardProps) {
   }, [filteredTransactions]);
 
   return (
-    <Card className="gradient-card border-border/50 p-6 shadow-card animate-slide-up">
+    <Card className="gradient-card border-border/50 p-6 shadow-card animate-fade-in">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">

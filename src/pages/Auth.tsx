@@ -104,18 +104,18 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
         {/* Logo */}
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center shadow-glow">
-            <Wallet className="w-8 h-8 text-primary-foreground" />
+        <div className="flex flex-col items-center gap-3 animate-fade-in">
+          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center border border-border">
+            <Wallet className="w-5 h-5 text-muted-foreground" />
           </div>
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-foreground">Paved</h1>
+            <h1 className="text-lg font-bold text-foreground">Paved</h1>
             <p className="text-muted-foreground mt-1">Personal Finance Tracker</p>
           </div>
         </div>
 
         {/* Auth Card */}
-        <Card className="gradient-card border-border/50 p-8 shadow-card animate-slide-up">
+        <Card className="bg-card border-border p-8 animate-fade-in" style={{ animationDelay: '0.15s' }}>
           <h2 className="text-xl font-semibold text-foreground mb-6 text-center">
             {isLogin ? 'Welcome back' : 'Create your account'}
           </h2>

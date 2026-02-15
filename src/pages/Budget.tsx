@@ -100,7 +100,7 @@ const Budget = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
           <div>
-            <h2 className="text-2xl font-bold text-foreground">Spending & Budgets</h2>
+            <h2 className="text-xl font-bold text-foreground">Spending & Budgets</h2>
             <p className="text-sm text-muted-foreground mt-1">
               Set targets by category. We'll show how you're doing vs your plan.
             </p>
