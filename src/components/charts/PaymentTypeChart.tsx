@@ -78,7 +78,7 @@ export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
 
   if (data.length === 0) {
     return (
-      <Card className="gradient-card border-border/50 p-6 shadow-card">
+      <Card className="bg-card border-border p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">Spending by Payment Type</h3>
         <div className="h-64 flex items-center justify-center text-muted-foreground">
           No payment type data available
@@ -89,7 +89,7 @@ export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
 
   return (
     <>
-      <Card className="gradient-card border-border/50 p-6 shadow-card">
+      <Card className="bg-card border-border p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">Spending by Payment Type</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">

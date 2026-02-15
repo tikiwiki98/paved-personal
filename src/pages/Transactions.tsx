@@ -137,7 +137,7 @@ const Transactions = () => {
 
       {/* Filters */}
       <div className="container mx-auto px-4 py-6">
-        <Card className="gradient-card border-border/50 p-4 mb-6">
+        <Card className="bg-card border-border p-4 mb-6">
           {/* Primary filters - always visible */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
@@ -290,7 +290,7 @@ const Transactions = () => {
         </Card>
 
         {/* Transaction List */}
-        <Card className="gradient-card border-border/50 p-6">
+        <Card className="bg-card border-border p-6">
           <div className="space-y-3">
             {filteredTransactions.length === 0 ? (
               <p className="text-center text-muted-foreground py-12">

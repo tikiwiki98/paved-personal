@@ -144,7 +144,7 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
 
   if (data.length === 0) {
     return (
-      <Card className="gradient-card border-border/50 p-6 shadow-card animate-slide-up" style={{ animationDelay: '0.3s' }}>
+      <Card className="bg-card border-border p-6 animate-slide-up" style={{ animationDelay: '0.3s' }}>
         <h3 className="text-lg font-semibold text-foreground mb-4">Spending Over Time</h3>
         <div className="h-64 flex items-center justify-center text-muted-foreground">
           No expense data for {rangeLabel}
@@ -156,7 +156,7 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
 
   return (
     <>
-      <Card className="gradient-card border-border/50 p-6 shadow-card animate-slide-up" style={{ animationDelay: '0.3s' }}>
+      <Card className="bg-card border-border p-6 animate-slide-up" style={{ animationDelay: '0.3s' }}>
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-foreground">Spending Over Time</h3>
           <span className="text-sm text-muted-foreground">{rangeLabel}</span>
