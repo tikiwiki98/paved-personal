@@ -184,3 +184,20 @@
     }
   }
 }
+
+/* Visible scrollbar on mobile for category lists */
+.mobile-visible-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.4) transparent;
+}
+.mobile-visible-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  display: block;
+}
+.mobile-visible-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.mobile-visible-scrollbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.4);
+  border-radius: 3px;
+}
