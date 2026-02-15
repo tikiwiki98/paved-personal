@@ -352,7 +352,7 @@ const Cards = () => {
 
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-6 md:py-8 max-w-2xl">
+      <div className="container mx-auto px-4 py-8 md:py-10 max-w-2xl">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
