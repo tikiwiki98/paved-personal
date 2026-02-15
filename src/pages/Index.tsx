@@ -43,15 +43,15 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-6 md:py-8">
+      <div className="container mx-auto px-4 py-8 md:py-10">
         {/* Top Controls */}
         <div className="flex justify-end mb-4">
           <IncludeRentToggle />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-8 lg:grid-cols-3">
           {/* Left Column - Balance & Chart */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-8">
             <BalanceCard transactions={transactions} />
             <SpendingOverTimeChart transactions={transactions} />
             <TransactionList 
