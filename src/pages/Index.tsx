@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { BalanceCard } from '@/components/BalanceCard';
 import { TransactionList } from '@/components/TransactionList';
 import { SpendingOverTimeChart } from '@/components/SpendingOverTimeChart';
@@ -15,16 +14,9 @@ import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const { transactions, isLoading: transactionsLoading, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
   const { categories, isLoading: categoriesLoading } = useCategories(transactions);
   const { initializeWithTransactions } = useTimeFrame();
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth', { replace: true });
-    }
-  }, [user, authLoading, navigate]);
 
   // Initialize smart default range based on transaction history
   useEffect(() => {
