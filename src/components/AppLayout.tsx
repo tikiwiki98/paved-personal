@@ -39,8 +39,8 @@ function DesktopSidebar() {
     <Sidebar collapsible="icon" className="border-r border-border/50">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-glow flex-shrink-0">
-            <Wallet className="w-5 h-5 text-primary-foreground" />
+          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center border border-border flex-shrink-0">
+            <Wallet className="w-5 h-5 text-foreground" />
           </div>
           {!isCollapsed && (
             <h1 className="text-lg font-bold text-foreground">Paved</h1>
@@ -126,8 +126,8 @@ function LayoutContent({ children }: { children: ReactNode }) {
       <header className="md:hidden border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center">
-              <Wallet className="w-4 h-4 text-primary-foreground" />
+            <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center border border-border">
+              <Wallet className="w-4 h-4 text-foreground" />
             </div>
             <h1 className="text-lg font-bold text-foreground">Paved</h1>
           </div>

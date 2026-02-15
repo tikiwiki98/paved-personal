@@ -17,7 +17,7 @@ export function BudgetCategories({
   onDeleteCategory 
 }: BudgetCategoriesProps) {
   return (
-    <Card className="gradient-card border-border/50 p-6 shadow-card animate-slide-up" style={{ animationDelay: '0.2s' }}>
+    <Card className="bg-card border-border p-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-foreground">Budget Categories</h3>
         <ManageCategoriesModal

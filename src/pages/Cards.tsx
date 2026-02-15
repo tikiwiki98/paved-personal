@@ -25,7 +25,7 @@ function CardItem({
   const needsConfirmation = !card.card_type;
 
   return (
-    <Card className="gradient-card border-border/50">
+    <Card className="bg-card border-border">
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 flex-1">
@@ -154,7 +154,7 @@ function ConfirmCardModal({
 }) {
   if (isLoading) {
     return (
-      <Card className="gradient-card border-primary/30 border-2">
+      <Card className="bg-card border-primary/30 border-2">
         <CardContent className="p-6">
           <div className="flex items-center gap-3">
             <Loader2 className="w-5 h-5 animate-spin text-primary" />
@@ -175,7 +175,7 @@ function ConfirmCardModal({
   }
 
   return (
-    <Card className="gradient-card border-primary/30 border-2">
+    <Card className="bg-card border-primary/30 border-2">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-primary" />
@@ -390,7 +390,7 @@ const Cards = () => {
         {/* Card List */}
         <div className="space-y-3">
           {creditCards.length === 0 ? (
-            <Card className="gradient-card border-border/50">
+            <Card className="bg-card border-border">
               <CardContent className="p-8 text-center">
                 <CreditCardIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground">
