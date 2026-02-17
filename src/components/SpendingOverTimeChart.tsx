@@ -4,8 +4,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { Transaction } from '@/types/budget';
 import { SummaryRangeSelector } from '@/components/SummaryRangeSelector';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
-import { filterTransactionsByRange, getDateRangeStart } from '@/lib/dateRangeUtils';
-import type { TimeFrameRange } from '@/contexts/TimeFrameContext';
+import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 import { ChartDrilldownSheet } from '@/components/charts/ChartDrilldownSheet';
 import {
   format, parseISO, startOfDay, eachDayOfInterval,
@@ -56,44 +55,32 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
     const expenses = filteredTransactions.filter((t) => t.type === 'expense');
     if (expenses.length === 0) return [] as DataPoint[];
 
-    const rangeStart = getDateRangeStart(range);
-    const rangeEnd = startOfDay(new Date());
-
     const dates = expenses.map((t) => parseISO(t.date));
     const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
 
     let intervals: Date[];
     let formatStr: string;
     let groupKey: (date: Date) => string;
     let mode: GroupingMode;
-    let formatLabel: (intervalDate: Date) => string;
 
-    // Group by selected range so 1M always = daily, 3M = weekly, 1Y = monthly (consistent across views)
-    const useDaily = (r: TimeFrameRange) => r === '1m' || r === 'mtd';
-    const useWeekly = (r: TimeFrameRange) => r === '3m';
-    const useMonthly = (r: TimeFrameRange) => r === '6m' || r === '1y' || r === 'ytd';
+    const daysDiff = Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
 
-    if (useDaily(range)) {
-      intervals = eachDayOfInterval({ start: rangeStart, end: rangeEnd });
+    if (daysDiff <= 31) {
+      intervals = eachDayOfInterval({ start: minDate, end: maxDate });
       formatStr = 'MMM d';
       groupKey = (date: Date) => format(startOfDay(date), 'yyyy-MM-dd');
       mode = 'daily';
-      formatLabel = (d: Date) => format(d, 'MMM d');
-    } else if (useWeekly(range)) {
-      intervals = eachWeekOfInterval({ start: rangeStart, end: rangeEnd });
+    } else if (daysDiff <= 90) {
+      intervals = eachWeekOfInterval({ start: minDate, end: maxDate });
+      formatStr = 'MMM d';
       groupKey = (date: Date) => format(startOfWeek(date), 'yyyy-MM-dd');
       mode = 'weekly';
-      formatLabel = (d: Date) => {
-        const start = startOfWeek(d);
-        const end = endOfWeek(d);
-        return `${format(start, 'MMM d')} – ${format(end, 'd')}`;
-      };
     } else {
-      intervals = eachMonthOfInterval({ start: rangeStart, end: rangeEnd });
+      intervals = eachMonthOfInterval({ start: minDate, end: maxDate });
       formatStr = 'MMM yyyy';
       groupKey = (date: Date) => format(startOfMonth(date), 'yyyy-MM');
       mode = 'monthly';
-      formatLabel = (d: Date) => format(d, 'MMM yyyy');
     }
 
     const expensesByInterval: Record<string, number> = {};
@@ -104,17 +91,15 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
     });
 
     return intervals.map((intervalDate) => {
-      const key = mode === 'daily'
-        ? format(startOfDay(intervalDate), 'yyyy-MM-dd')
-        : mode === 'weekly'
-          ? format(startOfWeek(intervalDate), 'yyyy-MM-dd')
-          : format(startOfMonth(intervalDate), 'yyyy-MM');
+      const key = daysDiff <= 90
+        ? format(daysDiff <= 31 ? startOfDay(intervalDate) : startOfWeek(intervalDate), 'yyyy-MM-dd')
+        : format(startOfMonth(intervalDate), 'yyyy-MM');
 
+      // If interval start is before earliest transaction, use earliest date for display label
       const displayDate = intervalDate < minDate ? minDate : intervalDate;
-      const dateLabel = mode === 'weekly' ? formatLabel(intervalDate) : format(displayDate, formatStr);
 
       return {
-        date: dateLabel,
+        date: format(displayDate, formatStr),
         fullDate: intervalDate,
         amount: expensesByInterval[key] || 0,
         intervalKey: key,
