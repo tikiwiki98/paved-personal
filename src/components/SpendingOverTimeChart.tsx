@@ -68,7 +68,7 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
     let mode: GroupingMode;
     let formatLabel: (intervalDate: Date) => string;
 
-    // Group by selected range only: 1M/MTD = daily, 3M = weekly, 6M/1Y/YTD = monthly (never derive from data span)
+    // Group by selected range so 1M always = daily, 3M = weekly, 1Y = monthly (consistent across views)
     const useDaily = (r: TimeFrameRange) => r === '1m' || r === 'mtd';
     const useWeekly = (r: TimeFrameRange) => r === '3m';
     const useMonthly = (r: TimeFrameRange) => r === '6m' || r === '1y' || r === 'ytd';
@@ -89,7 +89,6 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
         return `${format(start, 'MMM d')} – ${format(end, 'd')}`;
       };
     } else {
-      // 6M, 1Y, YTD = one point per month (YTD must not use weekly)
       intervals = eachMonthOfInterval({ start: rangeStart, end: rangeEnd });
       formatStr = 'MMM yyyy';
       groupKey = (date: Date) => format(startOfMonth(date), 'yyyy-MM');
