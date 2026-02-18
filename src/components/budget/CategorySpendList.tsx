@@ -3,15 +3,16 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Category } from '@/types/budget';
+import { Category, Transaction } from '@/types/budget';
 import { Pencil, Check, X, Plus, Lightbulb } from 'lucide-react';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
 import { getDateRangeStart } from '@/lib/dateRangeUtils';
 import { startOfDay, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { ChartDrilldownSheet } from '@/components/charts/ChartDrilldownSheet';
 
 interface CategorySpendListProps {
   categories: Category[];
-  transactions: { type: string; category: string; amount: number; date: string }[];
+  transactions: Transaction[];
   budgets: Record<string, number>;
   onUpdateBudget: (params: { category: string; amount: number }) => void;
 }
@@ -24,6 +25,7 @@ export function CategorySpendList({
 }: CategorySpendListProps) {
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [drilldownCategory, setDrilldownCategory] = useState<string | null>(null);
   const { includeRent, range } = useTimeFrame();
 
   // Calculate actual spend by category from transactions
@@ -123,6 +125,19 @@ export function CategorySpendList({
     return merged.sort((a, b) => b.spent - a.spent);
   }, [categories, spendByCategory, budgets]);
 
+  // Transactions for the drilldown sheet
+  const drilldownTransactions = useMemo(() => {
+    if (!drilldownCategory) return [];
+    const startDate = getDateRangeStart(range);
+    const endDate = startOfDay(new Date());
+    return transactions.filter(t => {
+      const txDate = new Date(t.date);
+      const withinRange = txDate >= startDate && txDate <= endDate;
+      const rentFilter = includeRent || t.category !== 'Rent';
+      return t.type === 'expense' && t.category === drilldownCategory && withinRange && rentFilter;
+    });
+  }, [drilldownCategory, transactions, range, includeRent]);
+
   const handleStartEdit = (categoryName: string, currentBudget: number) => {
     setEditingCategory(categoryName);
     setEditValue(currentBudget > 0 ? currentBudget.toString() : '');
@@ -145,6 +160,7 @@ export function CategorySpendList({
   };
 
   return (
+    <>
     <Card className="bg-card border-border p-6 animate-fade-in">
       <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
         {categoriesWithSpend.length === 0 ? (
@@ -159,7 +175,10 @@ export function CategorySpendList({
             return (
               <div
                 key={category.id}
-                className="p-4 rounded-xl bg-secondary/50 hover:bg-secondary/70 transition-all duration-200"
+                className={`p-4 rounded-xl bg-secondary/50 hover:bg-secondary/70 transition-all duration-200 ${!isEditing ? 'cursor-pointer' : ''}`}
+                onClick={() => {
+                  if (!isEditing) setDrilldownCategory(category.name);
+                }}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
@@ -205,7 +224,7 @@ export function CategorySpendList({
                       </Button>
                     </div>
                   ) : category.hasBudget ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <span className="text-sm font-medium text-foreground">
                         ${category.budget.toLocaleString()} budget
                       </span>
@@ -223,7 +242,7 @@ export function CategorySpendList({
                       variant="ghost"
                       size="sm"
                       className="text-xs text-muted-foreground hover:text-primary gap-1"
-                      onClick={() => handleStartEdit(category.name, 0)}
+                      onClick={(e) => { e.stopPropagation(); handleStartEdit(category.name, 0); }}
                     >
                       <Plus className="w-3 h-3" />
                       Set target
@@ -272,5 +291,13 @@ export function CategorySpendList({
         )}
       </div>
     </Card>
+
+    <ChartDrilldownSheet
+      open={!!drilldownCategory}
+      onOpenChange={(open) => { if (!open) setDrilldownCategory(null); }}
+      title={`Transactions – ${drilldownCategory || ''}`}
+      transactions={drilldownTransactions}
+    />
+  </>
   );
 }
