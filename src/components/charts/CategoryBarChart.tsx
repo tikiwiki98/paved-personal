@@ -6,7 +6,8 @@ import { ChartDrilldownSheet } from './ChartDrilldownSheet';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { Filter, X, Check } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Filter, Check, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CategoryBarChartProps {
@@ -15,9 +16,9 @@ interface CategoryBarChartProps {
 }
 
 const DEFAULT_TOP_N = 8;
+const MAX_BARS = 12;
 const EXPENSE_COLOR = 'hsl(220, 60%, 45%)';
 
-// Display-only tooltip
 function SimpleBarTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) {
   if (!active || !payload || payload.length === 0) return null;
   return (
@@ -30,11 +31,11 @@ function SimpleBarTooltip({ active, payload, label }: { active?: boolean; payloa
 
 export function CategoryBarChart({ transactions, categories }: CategoryBarChartProps) {
   const [drilldownOpen, setDrilldownOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [focusedCategory, setFocusedCategory] = useState<string | null>(null);
+  const [drilldownCategory, setDrilldownCategory] = useState<string | null>(null);
+  const [pinnedCategories, setPinnedCategories] = useState<Set<string>>(new Set());
+  const [showOnlySelected, setShowOnlySelected] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  // All categories with spend, sorted by spend desc
   const allCategoryData = useMemo(() => {
     const expensesByCategory = transactions
       .filter((t) => t.type === 'expense')
@@ -48,37 +49,62 @@ export function CategoryBarChart({ transactions, categories }: CategoryBarChartP
       .sort((a, b) => b.value - a.value);
   }, [transactions]);
 
-  // Chart data based on focus state
   const data = useMemo(() => {
-    if (focusedCategory) {
-      const found = allCategoryData.find(d => d.name === focusedCategory);
-      return found ? [found] : [];
+    if (showOnlySelected && pinnedCategories.size > 0) {
+      return allCategoryData.filter(d => pinnedCategories.has(d.name));
     }
-    return allCategoryData.slice(0, DEFAULT_TOP_N);
-  }, [allCategoryData, focusedCategory]);
+    if (pinnedCategories.size === 0) {
+      return allCategoryData.slice(0, DEFAULT_TOP_N);
+    }
+    const topN = allCategoryData.slice(0, DEFAULT_TOP_N);
+    const topNames = new Set(topN.map(d => d.name));
+    const extras = allCategoryData.filter(d => pinnedCategories.has(d.name) && !topNames.has(d.name));
+    return [...topN, ...extras].slice(0, MAX_BARS);
+  }, [allCategoryData, pinnedCategories, showOnlySelected]);
 
   const drilldownTransactions = useMemo(() => {
-    if (!selectedCategory) return [];
+    if (!drilldownCategory) return [];
     return transactions.filter(
-      (t) => t.type === 'expense' && t.category === selectedCategory
+      (t) => t.type === 'expense' && t.category === drilldownCategory
     );
-  }, [transactions, selectedCategory]);
+  }, [transactions, drilldownCategory]);
 
   const handleChartClick = useCallback((chartData: any) => {
     if (!chartData?.activePayload?.[0]) return;
     const name = chartData.activePayload[0].payload.name as string;
-    setSelectedCategory(name);
+    setDrilldownCategory(name);
     setDrilldownOpen(true);
   }, []);
 
-  const handleSelectCategory = (categoryName: string) => {
-    setFocusedCategory(categoryName);
-    setPickerOpen(false);
+  const toggleCategory = (name: string) => {
+    setPinnedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
   };
 
-  const handleClearFocus = () => {
-    setFocusedCategory(null);
+  const handleReset = () => {
+    setPinnedCategories(new Set());
+    setShowOnlySelected(false);
   };
+
+  const subtitle = useMemo(() => {
+    if (showOnlySelected && pinnedCategories.size > 0) {
+      return `Showing ${pinnedCategories.size} selected`;
+    }
+    if (pinnedCategories.size > 0) {
+      const topNNames = new Set(allCategoryData.slice(0, DEFAULT_TOP_N).map(d => d.name));
+      const added = [...pinnedCategories].filter(n => !topNNames.has(n)).length;
+      if (added > 0) return `Top ${DEFAULT_TOP_N} + ${added} added`;
+      return `Top ${DEFAULT_TOP_N} (${pinnedCategories.size} pinned)`;
+    }
+    return null;
+  }, [pinnedCategories, showOnlySelected, allCategoryData]);
+
+  const hasSelections = pinnedCategories.size > 0;
+  const barCount = data.length;
+  const chartHeight = Math.max(barCount * 30 + 20, 80);
 
   if (allCategoryData.length === 0) {
     return (
@@ -94,114 +120,126 @@ export function CategoryBarChart({ transactions, categories }: CategoryBarChartP
   return (
     <>
       <Card className="bg-card border-border p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
+        <div className="flex items-start justify-between mb-4 gap-2">
+          <div className="min-w-0">
             <h3 className="text-lg font-semibold text-foreground">Spend by Category</h3>
-            {focusedCategory && (
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="text-xs text-muted-foreground">Showing:</span>
-                <span className="inline-flex items-center gap-1 text-xs font-medium bg-primary/10 text-primary rounded-full px-2 py-0.5">
-                  {focusedCategory}
-                  <button onClick={handleClearFocus} className="hover:text-primary/70 transition-colors">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              </div>
+            {subtitle && (
+              <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
             )}
           </div>
 
-          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-            <PopoverTrigger asChild>
+          <div className="flex items-center gap-1 shrink-0">
+            {hasSelections && (
               <Button
                 variant="ghost"
                 size="sm"
-                className={cn(
-                  "text-xs gap-1.5 text-muted-foreground hover:text-foreground",
-                  focusedCategory && "text-primary hover:text-primary"
-                )}
+                className="text-xs gap-1 text-muted-foreground hover:text-foreground h-8 px-2"
+                onClick={handleReset}
               >
-                <Filter className="w-3.5 h-3.5" />
-                {focusedCategory ? 'Change' : 'Filter'}
+                <RotateCcw className="w-3 h-3" />
+                Reset
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56 p-0 bg-popover border-border z-50" align="end">
-              <Command>
-                <CommandInput placeholder="Search categories..." />
-                <CommandList>
-                  <CommandEmpty>No categories found.</CommandEmpty>
-                  <CommandGroup>
-                    {/* Show All / Reset option */}
-                    <CommandItem
-                      onSelect={handleClearFocus}
-                      className="cursor-pointer"
-                    >
-                      <Check className={cn("mr-2 h-3.5 w-3.5", !focusedCategory ? "opacity-100" : "opacity-0")} />
-                      <span className="font-medium">All (top {DEFAULT_TOP_N})</span>
-                    </CommandItem>
-                    {allCategoryData.map(cat => (
-                      <CommandItem
-                        key={cat.name}
-                        onSelect={() => handleSelectCategory(cat.name)}
-                        className="cursor-pointer"
-                      >
-                        <Check className={cn("mr-2 h-3.5 w-3.5", focusedCategory === cat.name ? "opacity-100" : "opacity-0")} />
-                        <span className="flex-1">{cat.name}</span>
-                        <span className="text-xs text-muted-foreground">${cat.value.toLocaleString()}</span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+            )}
+            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "text-xs gap-1.5 text-muted-foreground hover:text-foreground h-8",
+                    hasSelections && "text-primary hover:text-primary"
+                  )}
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  {hasSelections ? `${pinnedCategories.size} selected` : 'Filter'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-0 bg-popover border-border z-50" align="end">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                  <label htmlFor="show-only" className="text-xs text-muted-foreground cursor-pointer">
+                    Show only selected
+                  </label>
+                  <Switch
+                    id="show-only"
+                    checked={showOnlySelected}
+                    onCheckedChange={setShowOnlySelected}
+                    className="scale-75"
+                    disabled={pinnedCategories.size === 0}
+                  />
+                </div>
+                <Command>
+                  <CommandInput placeholder="Search categories..." />
+                  <CommandList>
+                    <CommandEmpty>No categories found.</CommandEmpty>
+                    <CommandGroup>
+                      {allCategoryData.map(cat => (
+                        <CommandItem
+                          key={cat.name}
+                          onSelect={() => toggleCategory(cat.name)}
+                          className="cursor-pointer"
+                        >
+                          <Check className={cn("mr-2 h-3.5 w-3.5", pinnedCategories.has(cat.name) ? "opacity-100" : "opacity-0")} />
+                          <span className="flex-1 truncate">{cat.name}</span>
+                          <span className="text-xs text-muted-foreground ml-2">${cat.value.toLocaleString()}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
-        <div className={focusedCategory ? "h-24" : "h-64"}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 70, bottom: 5 }} onClick={handleChartClick}>
-              <XAxis
-                type="number"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: 'hsl(215, 15%, 55%)', fontSize: 12 }}
-                tickFormatter={(value) => {
-                  if (value === 0) return '$0';
-                  if (value >= 1000) return `$${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k`;
-                  return `$${Math.round(value / 100) * 100}`;
-                }}
-                domain={[0, 'auto']}
-                tickCount={5}
-                allowDecimals={false}
-              />
-              <YAxis
-                type="category"
-                dataKey="name"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }}
-                width={70}
-              />
-              <Tooltip
-                cursor={false}
-                content={<SimpleBarTooltip />}
-              />
-              <Bar
-                dataKey="value"
-                fill={EXPENSE_COLOR}
-                radius={[0, 4, 4, 0]}
-                barSize={20}
-                activeBar={false}
-                cursor="pointer"
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {showOnlySelected && pinnedCategories.size === 0 ? (
+          <div className="h-32 flex items-center justify-center text-sm text-muted-foreground">
+            Select categories above to focus on them
+          </div>
+        ) : (
+          <div style={{ height: Math.min(chartHeight, 320) }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 70, bottom: 5 }} onClick={handleChartClick}>
+                <XAxis
+                  type="number"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'hsl(215, 15%, 55%)', fontSize: 12 }}
+                  tickFormatter={(value) => {
+                    if (value === 0) return '$0';
+                    if (value >= 1000) return `$${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k`;
+                    return `$${Math.round(value / 100) * 100}`;
+                  }}
+                  domain={[0, 'auto']}
+                  tickCount={5}
+                  allowDecimals={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }}
+                  width={70}
+                />
+                <Tooltip cursor={false} content={<SimpleBarTooltip />} />
+                <Bar
+                  dataKey="value"
+                  fill={EXPENSE_COLOR}
+                  radius={[0, 4, 4, 0]}
+                  barSize={20}
+                  activeBar={false}
+                  cursor="pointer"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </Card>
 
       <ChartDrilldownSheet
         open={drilldownOpen}
         onOpenChange={setDrilldownOpen}
-        title={`${selectedCategory} Transactions`}
+        title={`${drilldownCategory} Transactions`}
         transactions={drilldownTransactions}
       />
     </>
