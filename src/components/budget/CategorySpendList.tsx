@@ -34,7 +34,7 @@ export function CategorySpendList({
   // Calculate actual spend by category from transactions using the provided month window
   const spendByCategory = useMemo(() => {
     const filteredTransactions = transactions.filter(t => {
-      const txDate = new Date(t.date);
+      const txDate = new Date(t.date + 'T00:00:00');
       const withinRange = txDate >= monthStart && txDate <= monthEnd;
       const rentFilter = includeRent || t.category !== 'Rent';
       return t.type === 'expense' && withinRange && rentFilter;
@@ -61,7 +61,7 @@ export function CategorySpendList({
       const monthEnd = endOfMonth(subMonths(now, i));
 
       const monthTxns = transactions.filter(t => {
-        const txDate = new Date(t.date);
+        const txDate = new Date(t.date + 'T00:00:00');
         return t.type === 'expense' && isWithinInterval(txDate, { start: monthStart, end: monthEnd });
       });
 
@@ -79,7 +79,7 @@ export function CategorySpendList({
       const monthEnd = endOfMonth(subMonths(now, i));
 
       const monthTxns = transactions.filter(t => {
-        const txDate = new Date(t.date);
+        const txDate = new Date(t.date + 'T00:00:00');
         const rentFilter = includeRent || t.category !== 'Rent';
         return t.type === 'expense' && rentFilter && isWithinInterval(txDate, { start: monthStart, end: monthEnd });
       });
@@ -129,7 +129,7 @@ export function CategorySpendList({
   const drilldownTransactions = useMemo(() => {
     if (!drilldownCategory) return [];
     return transactions.filter(t => {
-      const txDate = new Date(t.date);
+      const txDate = new Date(t.date + 'T00:00:00');
       const withinRange = txDate >= monthStart && txDate <= monthEnd;
       const rentFilter = includeRent || t.category !== 'Rent';
       return t.type === 'expense' && t.category === drilldownCategory && withinRange && rentFilter;

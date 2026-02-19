@@ -77,7 +77,7 @@ const Budget = () => {
 
   const { totalSpent, totalBudgeted, overCount } = useMemo(() => {
     const filtered = transactions.filter(t => {
-      const txDate = new Date(t.date);
+      const txDate = new Date(t.date + 'T00:00:00');
       const withinRange = txDate >= monthStart && txDate <= monthEnd;
       const rentFilter = includeRent || t.category !== 'Rent';
       return t.type === 'expense' && withinRange && rentFilter;
