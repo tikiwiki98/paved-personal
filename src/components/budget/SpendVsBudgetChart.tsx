@@ -144,7 +144,7 @@ export function SpendVsBudgetChart({ transactions, budgets, onCategoryClick }: S
               {chartData.map((entry, index) => (
                 <Cell 
                   key={`spend-${index}`}
-                  fill={entry.isOverBudget ? 'hsl(32, 95%, 55%)' : 'hsl(220, 60%, 45%)'}
+                  fill={entry.isOverBudget ? 'hsl(40, 65%, 55%)' : 'hsl(220, 50%, 50%)'}
                 />
               ))}
             </Bar>

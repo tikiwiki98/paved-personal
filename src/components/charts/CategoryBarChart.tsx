@@ -18,7 +18,7 @@ interface CategoryBarChartProps {
 
 const DEFAULT_TOP_N = 8;
 const MAX_BARS = 12;
-const EXPENSE_COLOR = 'hsl(220, 60%, 45%)';
+const EXPENSE_COLOR = 'hsl(220, 50%, 50%)';
 
 function SimpleBarTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) {
   if (!active || !payload || payload.length === 0) return null;

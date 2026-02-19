@@ -13,7 +13,7 @@ interface CreditCardSpendingChartProps {
   creditCards: CreditCard[];
 }
 
-const EXPENSE_COLOR = 'hsl(220, 60%, 45%)';
+const EXPENSE_COLOR = 'hsl(220, 50%, 50%)';
 
 // Display-only tooltip
 function SimpleBarTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) {
