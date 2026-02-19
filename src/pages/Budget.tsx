@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { IncludeRentToggle } from '@/components/IncludeRentToggle';
@@ -7,9 +7,13 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
-import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Loader2, ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
 import { CategorySpendList } from '@/components/budget/CategorySpendList';
-import { startOfMonth, format } from 'date-fns';
+import { startOfMonth, endOfMonth, format, subMonths, addMonths, isSameMonth, isAfter, startOfDay } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const Budget = () => {
   const { user, loading: authLoading } = useAuth();
@@ -18,6 +22,26 @@ const Budget = () => {
   const { categories, isLoading: categoriesLoading, upsertBudget } = useCategories(transactions, 'monthly');
   const { budgets: budgetsArray, isLoading: budgetsLoading } = useBudgets('monthly');
   const { initializeWithTransactions, includeRent } = useTimeFrame();
+
+  // Month navigation state — defaults to current month
+  const [selectedMonth, setSelectedMonth] = useState(() => startOfMonth(new Date()));
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const now = new Date();
+  const isCurrentMonth = isSameMonth(selectedMonth, now);
+  const canGoNext = !isCurrentMonth; // Can't go past current month
+
+  const handlePrevMonth = () => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)));
+  const handleNextMonth = () => {
+    if (canGoNext) setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)));
+  };
+
+  const handlePickMonth = (date: Date | undefined) => {
+    if (date) {
+      setSelectedMonth(startOfMonth(date));
+      setPickerOpen(false);
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -31,7 +55,6 @@ const Budget = () => {
     }
   }, [transactions, transactionsLoading, initializeWithTransactions]);
 
-  // Build budgets lookup from the actual budgets table data (not just categories)
   const budgets = useMemo(() => {
     const lookup: Record<string, number> = {};
     budgetsArray.forEach(b => {
@@ -42,16 +65,20 @@ const Budget = () => {
     return lookup;
   }, [budgetsArray]);
 
-  // Summary stats
-  // Fixed monthly window: start of current month through today
-  const monthStart = useMemo(() => startOfMonth(new Date()), []);
-  const today = useMemo(() => new Date(), []);
-  const monthLabel = useMemo(() => format(new Date(), 'MMMM'), []);
+  // Compute date range for selected month
+  const { monthStart, monthEnd } = useMemo(() => {
+    const start = startOfMonth(selectedMonth);
+    // For current month, cap at today. For past months, use end of month.
+    const end = isCurrentMonth ? startOfDay(now) : endOfMonth(selectedMonth);
+    return { monthStart: start, monthEnd: end };
+  }, [selectedMonth, isCurrentMonth]);
+
+  const monthLabel = format(selectedMonth, 'MMMM yyyy');
 
   const { totalSpent, totalBudgeted, overCount } = useMemo(() => {
     const filtered = transactions.filter(t => {
       const txDate = new Date(t.date);
-      const withinRange = txDate >= monthStart && txDate <= today;
+      const withinRange = txDate >= monthStart && txDate <= monthEnd;
       const rentFilter = includeRent || t.category !== 'Rent';
       return t.type === 'expense' && withinRange && rentFilter;
     });
@@ -80,7 +107,7 @@ const Budget = () => {
     });
 
     return { totalSpent: spent, totalBudgeted: budgeted, overCount: over };
-  }, [transactions, budgets, includeRent, monthStart, today]);
+  }, [transactions, budgets, includeRent, monthStart, monthEnd]);
 
   if (authLoading || transactionsLoading || categoriesLoading || budgetsLoading) {
     return (
@@ -108,12 +135,57 @@ const Budget = () => {
           <IncludeRentToggle />
         </div>
 
+        {/* Month Navigation */}
+        <div className="flex items-center justify-center gap-2 my-5">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handlePrevMonth}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="min-w-[180px] justify-center gap-2 font-semibold"
+              >
+                <CalendarIcon className="w-4 h-4" />
+                {monthLabel}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="center">
+              <Calendar
+                mode="single"
+                selected={selectedMonth}
+                onSelect={handlePickMonth}
+                disabled={(date) => isAfter(startOfMonth(date), startOfMonth(now))}
+                defaultMonth={selectedMonth}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNextMonth}
+            disabled={!canGoNext}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground disabled:opacity-30"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+
         {/* Summary strip */}
         {totalBudgeted > 0 && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mb-6 mt-3">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mb-6">
             <span>
               <span className="font-semibold text-foreground">${totalSpent.toLocaleString()}</span> spent of{' '}
-              <span className="font-semibold text-foreground">${totalBudgeted.toLocaleString()}</span> budgeted in {monthLabel}
+              <span className="font-semibold text-foreground">${totalBudgeted.toLocaleString()}</span> budgeted
             </span>
             {overCount > 0 && (
               <span className="text-accent font-medium">
@@ -130,6 +202,8 @@ const Budget = () => {
             transactions={transactions}
             budgets={budgets}
             onUpdateBudget={upsertBudget}
+            monthStart={monthStart}
+            monthEnd={monthEnd}
           />
         </div>
       </div>
