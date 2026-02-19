@@ -9,6 +9,7 @@ import { AppLayout } from '@/components/AppLayout';
 import { CategoryBarChart } from '@/components/charts/CategoryBarChart';
 import { PaymentTypeChart } from '@/components/charts/PaymentTypeChart';
 import { CreditCardSpendingChart } from '@/components/charts/CreditCardSpendingChart';
+import { SpendingOverTimeChart } from '@/components/SpendingOverTimeChart';
 import { SummaryRangeSelector } from '@/components/SummaryRangeSelector';
 import { IncludeRentToggle } from '@/components/IncludeRentToggle';
 import { SpendInsights } from '@/components/SpendInsights';
@@ -78,7 +79,7 @@ const Trends = () => {
           <IncludeRentToggle />
         </div>
 
-        {/* Time Frame Selector - synced with Home page */}
+        {/* Time Frame Selector - shared by all charts */}
         <div className="mb-8">
           <SummaryRangeSelector value={range} onChange={setRange} transactions={transactions} />
         </div>
@@ -86,6 +87,11 @@ const Trends = () => {
         {/* AI Insights */}
         <div className="mb-8">
           <SpendInsights transactions={filteredTransactions} />
+        </div>
+
+        {/* Spending Over Time */}
+        <div className="mb-8">
+          <SpendingOverTimeChart transactions={transactions} />
         </div>
 
         {/* Charts Grid */}

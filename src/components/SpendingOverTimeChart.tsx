@@ -2,7 +2,6 @@ import { useMemo, useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Transaction } from '@/types/budget';
-import { SummaryRangeSelector } from '@/components/SummaryRangeSelector';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 import { ChartDrilldownSheet } from '@/components/charts/ChartDrilldownSheet';
@@ -41,7 +40,7 @@ function SimpleTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartProps) {
-  const { range, setRange, filterRent, customStartDate, customEndDate } = useTimeFrame();
+  const { range, filterRent, customStartDate, customEndDate } = useTimeFrame();
   const [drilldownOpen, setDrilldownOpen] = useState(false);
   const [drilldownTitle, setDrilldownTitle] = useState('');
   const [drilldownTransactions, setDrilldownTransactions] = useState<Transaction[]>([]);
@@ -151,7 +150,6 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
         <div className="h-64 flex items-center justify-center text-muted-foreground">
           No expense data for {rangeLabel}
         </div>
-        <SummaryRangeSelector value={range} onChange={setRange} transactions={transactions} />
       </Card>
     );
   }
@@ -210,8 +208,6 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
             </LineChart>
           </ResponsiveContainer>
         </div>
-
-        <SummaryRangeSelector value={range} onChange={setRange} transactions={transactions} />
       </Card>
 
       <ChartDrilldownSheet
