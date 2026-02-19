@@ -12,7 +12,7 @@ import { CreditCardSpendingChart } from '@/components/charts/CreditCardSpendingC
 import { SpendingOverTimeChart } from '@/components/SpendingOverTimeChart';
 import { SummaryRangeSelector } from '@/components/SummaryRangeSelector';
 import { IncludeRentToggle } from '@/components/IncludeRentToggle';
-import { SpendInsights } from '@/components/SpendInsights';
+
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { useRangeLabel } from '@/hooks/useRangeLabel';
@@ -78,11 +78,6 @@ const Trends = () => {
         {/* Time Frame Selector - shared by all charts */}
         <div className="mb-8">
           <SummaryRangeSelector value={range} onChange={setRange} transactions={transactions} />
-        </div>
-
-        {/* AI Insights */}
-        <div className="mb-8">
-          <SpendInsights transactions={transactions} />
         </div>
 
         {/* Spending Over Time */}
