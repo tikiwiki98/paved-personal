@@ -2,13 +2,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 serve(async (req) => {
   console.log('lookup-card-benefits invoked with method:', req.method);
   
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -47,76 +46,87 @@ serve(async (req) => {
             role: 'system',
             content: `You are a credit card rewards expert with precise knowledge of all major US credit card reward structures.
 
+When a user's query could match MULTIPLE distinct cards (e.g. "chase freedom" could be Chase Freedom Flex or Chase Freedom Unlimited), return ALL matching candidates (up to 5), ranked by relevance.
+
+When the query clearly identifies ONE specific card, return just that one candidate.
+
 IMPORTANT: Use NORMALIZED category names for consistency. Map card-specific terminology to these standard categories:
-- "Groceries" for supermarkets, US Supermarkets, grocery stores (e.g., Amex Gold's 4x on US Supermarkets = "Groceries" at 4x)
+- "Groceries" for supermarkets, US Supermarkets, grocery stores
 - "Dining" for restaurants, US Restaurants, eating out
-- "Travel" for flights, hotels, travel purchases, travel booked through portals
+- "Travel" for flights, hotels, travel purchases
 - "Gas" for gas stations, fuel
 - "Streaming" for streaming services like Netflix, Spotify
 - "Transit" for public transportation, rideshare
-- "Flights" for airlines specifically (if different from general travel)
-- "Hotels" for hotels specifically (if different from general travel)
+- "Flights" for airlines specifically
+- "Hotels" for hotels specifically
 - "Shopping" for general retail purchases
 - "Other" for everything else (base earn rate)
-
-For example:
-- Amex Gold's "4x at US Supermarkets" should be: { "category": "Groceries", "rate": 4, "unit": "points" }
-- Amex Gold's "4x at US Restaurants" should be: { "category": "Dining", "rate": 4, "unit": "points" }
-- Chase Sapphire Preferred's "3x on dining" should be: { "category": "Dining", "rate": 3, "unit": "points" }
 
 Be PRECISE about rates. Common cards:
 - Amex Gold: 4x Groceries (up to $25k/yr), 4x Dining, 3x Flights, 1x Other
 - Chase Sapphire Preferred: 3x Dining, 3x Streaming, 2x Travel, 5x Travel via Chase, 1x Other
-- Citi Double Cash: 2% on everything (1% when you buy + 1% when you pay)
+- Chase Freedom Flex: 5% rotating quarterly categories, 3% Dining, 3% Drugstores, 1% Other
+- Chase Freedom Unlimited: 1.5% everything, 3% Dining, 3% Drugstores, 5% Travel via Chase
+- Citi Double Cash: 2% on everything
 - Discover it: 5% rotating categories, 1% other
 
-Return accurate, current reward structures. If you're unsure, set confidence to "low".
-Only return the JSON object via the function call, no other text.`
+Return accurate, current reward structures. If you're unsure about a card, set its confidence to "low".
+Only return the JSON via the function call, no other text.`
           },
           {
             role: 'user',
-            content: `Identify this credit card and return its EXACT reward structure using normalized category names: "${cardName}"`
+            content: `Identify credit card(s) matching "${cardName}" and return their reward structures. If the query is ambiguous and could match multiple distinct cards, return all matches (up to 5). If it clearly identifies one card, return just that one.`
           }
         ],
         tools: [
           {
             type: "function",
             function: {
-              name: "get_card_benefits",
-              description: "Return the credit card benefits and reward categories with normalized category names",
+              name: "get_card_candidates",
+              description: "Return one or more credit card candidates with their benefits",
               parameters: {
                 type: "object",
                 properties: {
-                  cardType: { type: "string", description: "The exact official card name" },
-                  issuer: { type: "string", description: "The card issuer (Chase, American Express, Citi, etc.)" },
-                  rewardCategories: {
+                  candidates: {
                     type: "array",
-                    description: "Array of reward categories using normalized names (Groceries, Dining, Travel, Gas, etc.)",
+                    description: "Array of matching credit card candidates, ranked by relevance. 1 for unambiguous, up to 5 for ambiguous queries.",
                     items: {
                       type: "object",
                       properties: {
-                        category: { 
-                          type: "string",
-                          description: "Normalized category: Groceries, Dining, Travel, Gas, Streaming, Transit, Flights, Hotels, Shopping, or Other"
+                        cardType: { type: "string", description: "The exact official card name" },
+                        issuer: { type: "string", description: "The card issuer (Chase, American Express, Citi, etc.)" },
+                        rewardCategories: {
+                          type: "array",
+                          description: "Array of reward categories using normalized names",
+                          items: {
+                            type: "object",
+                            properties: {
+                              category: { 
+                                type: "string",
+                                description: "Normalized category: Groceries, Dining, Travel, Gas, Streaming, Transit, Flights, Hotels, Shopping, or Other"
+                              },
+                              rate: { type: "number", description: "The multiplier or percentage" },
+                              unit: { type: "string", enum: ["points", "percent", "miles"] }
+                            },
+                            required: ["category", "rate", "unit"]
+                          }
                         },
-                        rate: { type: "number", description: "The multiplier or percentage (e.g., 4 for 4x or 4%)" },
-                        unit: { type: "string", enum: ["points", "percent", "miles"] }
+                        confidence: { 
+                          type: "string", 
+                          enum: ["high", "medium", "low"],
+                          description: "high if certain about the card and rates, medium if mostly sure, low if uncertain"
+                        }
                       },
-                      required: ["category", "rate", "unit"]
+                      required: ["cardType", "issuer", "rewardCategories", "confidence"]
                     }
-                  },
-                  confidence: { 
-                    type: "string", 
-                    enum: ["high", "medium", "low"],
-                    description: "high if you're certain about the card and rates, medium if mostly sure, low if uncertain"
                   }
                 },
-                required: ["cardType", "issuer", "rewardCategories", "confidence"]
+                required: ["candidates"]
               }
             }
           }
         ],
-        tool_choice: { type: "function", function: { name: "get_card_benefits" } }
+        tool_choice: { type: "function", function: { name: "get_card_candidates" } }
       }),
     });
 
@@ -149,13 +159,24 @@ Only return the JSON object via the function call, no other text.`
     // Extract the tool call arguments
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (toolCall?.function?.arguments) {
-      const cardBenefits = JSON.parse(toolCall.function.arguments);
-      console.log('Parsed card benefits:', JSON.stringify(cardBenefits));
+      const result = JSON.parse(toolCall.function.arguments);
+      console.log('Parsed candidates:', JSON.stringify(result));
       
-      return new Response(
-        JSON.stringify(cardBenefits),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      // Ensure we always return { candidates: [...] }
+      if (result.candidates && Array.isArray(result.candidates)) {
+        return new Response(
+          JSON.stringify(result),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Fallback: if old-format single object, wrap it
+      if (result.cardType) {
+        return new Response(
+          JSON.stringify({ candidates: [result] }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Fallback: try to parse content directly
@@ -163,10 +184,18 @@ Only return the JSON object via the function call, no other text.`
     if (content) {
       try {
         const parsed = JSON.parse(content);
-        return new Response(
-          JSON.stringify(parsed),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        if (parsed.candidates) {
+          return new Response(
+            JSON.stringify(parsed),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        if (parsed.cardType) {
+          return new Response(
+            JSON.stringify({ candidates: [parsed] }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       } catch {
         console.error('Failed to parse AI response content');
       }

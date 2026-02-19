@@ -151,12 +151,27 @@ export function useCreditCards() {
         return null;
       }
 
-      return data as {
-        cardType: string;
-        issuer: string;
-        rewardCategories: RewardCategory[];
-        confidence: 'high' | 'medium' | 'low';
-      };
+      // Handle new multi-candidate format
+      if (data?.candidates && Array.isArray(data.candidates) && data.candidates.length > 0) {
+        return data.candidates as {
+          cardType: string;
+          issuer: string;
+          rewardCategories: RewardCategory[];
+          confidence: 'high' | 'medium' | 'low';
+        }[];
+      }
+
+      // Fallback: old single-object format
+      if (data?.cardType) {
+        return [data as {
+          cardType: string;
+          issuer: string;
+          rewardCategories: RewardCategory[];
+          confidence: 'high' | 'medium' | 'low';
+        }];
+      }
+
+      return null;
     } catch (error) {
       console.error('Error looking up card benefits:', error);
       toast.error('Failed to look up card benefits. Please try again.');

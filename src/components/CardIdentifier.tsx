@@ -6,6 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Sparkles, Check, X } from 'lucide-react';
 import { RewardCategory } from '@/types/budget';
 
+interface CardCandidate {
+  cardType: string;
+  issuer: string;
+  rewardCategories: RewardCategory[];
+  confidence: 'high' | 'medium' | 'low';
+}
+
 interface CardIdentifierProps {
   cardName: string;
   onCardNameChange: (name: string) => void;
@@ -16,12 +23,7 @@ interface CardIdentifierProps {
     issuer?: string | null;
     reward_categories?: RewardCategory[];
   }) => Promise<boolean>;
-  lookupCardBenefits: (cardName: string) => Promise<{
-    cardType: string;
-    issuer: string;
-    rewardCategories: RewardCategory[];
-    confidence: 'high' | 'medium' | 'low';
-  } | null>;
+  lookupCardBenefits: (cardName: string) => Promise<CardCandidate[] | null>;
   inputId?: string;
 }
 
@@ -35,64 +37,70 @@ export function CardIdentifier({
   inputId = 'new-card-name',
 }: CardIdentifierProps) {
   const [isIdentifying, setIsIdentifying] = useState(false);
-  const [pendingConfirmation, setPendingConfirmation] = useState<{
-    cardId: string;
-    suggestedType: string;
-    suggestedIssuer: string;
-    suggestedRewards: RewardCategory[];
-    confidence: 'high' | 'medium' | 'low';
-  } | null>(null);
+  const [candidates, setCandidates] = useState<CardCandidate[] | null>(null);
+  const [pendingCardId, setPendingCardId] = useState<string | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<CardCandidate | null>(null);
 
   const handleIdentifyCard = async () => {
     if (!cardName.trim()) return;
     
     setIsIdentifying(true);
+    setCandidates(null);
+    setSelectedCandidate(null);
     
-    // First, add the card
     const newCard = await addCreditCard(cardName.trim());
     
     if (newCard) {
-      // Look up benefits
-      const benefits = await lookupCardBenefits(cardName.trim());
+      setPendingCardId(newCard.id);
+      const results = await lookupCardBenefits(cardName.trim());
       
-      if (benefits) {
-        setPendingConfirmation({
-          cardId: newCard.id,
-          suggestedType: benefits.cardType,
-          suggestedIssuer: benefits.issuer,
-          suggestedRewards: benefits.rewardCategories,
-          confidence: benefits.confidence,
-        });
+      if (results && results.length > 0) {
+        if (results.length === 1) {
+          // Single match — go straight to confirm
+          setSelectedCandidate(results[0]);
+        } else {
+          // Multiple matches — show selection list
+          setCandidates(results);
+        }
       } else {
-        // Card added but no benefits found - still use the card
+        // No results — use card as-is
         onCardIdentified(newCard.id);
         onCardNameChange('');
+        setPendingCardId(null);
       }
     }
     
     setIsIdentifying(false);
   };
 
-  const handleConfirmCard = async () => {
-    if (!pendingConfirmation) return;
-    
-    await updateCreditCard(pendingConfirmation.cardId, {
-      card_type: pendingConfirmation.suggestedType,
-      issuer: pendingConfirmation.suggestedIssuer,
-      reward_categories: pendingConfirmation.suggestedRewards,
-    });
-    
-    onCardIdentified(pendingConfirmation.cardId);
-    onCardNameChange('');
-    setPendingConfirmation(null);
+  const handleSelectCandidate = (candidate: CardCandidate) => {
+    setSelectedCandidate(candidate);
+    setCandidates(null);
   };
 
-  const handleSkipConfirmation = () => {
-    if (pendingConfirmation) {
-      onCardIdentified(pendingConfirmation.cardId);
+  const handleConfirmCard = async () => {
+    if (!selectedCandidate || !pendingCardId) return;
+    
+    await updateCreditCard(pendingCardId, {
+      card_type: selectedCandidate.cardType,
+      issuer: selectedCandidate.issuer,
+      reward_categories: selectedCandidate.rewardCategories,
+    });
+    
+    onCardIdentified(pendingCardId);
+    onCardNameChange('');
+    setSelectedCandidate(null);
+    setPendingCardId(null);
+  };
+
+  const handleSkip = () => {
+    if (pendingCardId) {
+      onCardIdentified(pendingCardId);
       onCardNameChange('');
     }
-    setPendingConfirmation(null);
+    setCandidates(null);
+    setSelectedCandidate(null);
+    setPendingCardId(null);
   };
 
   const handleAddWithoutIdentifying = async () => {
@@ -107,37 +115,81 @@ export function CardIdentifier({
     setIsIdentifying(false);
   };
 
-  // Show confirmation UI when we have pending benefits
-  if (pendingConfirmation) {
+  // Show candidate selection list
+  if (candidates && candidates.length > 1) {
+    return (
+      <div className="space-y-3 p-3 rounded-lg bg-primary/5 border border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium text-foreground">We found several matches</span>
+        </div>
+        
+        <div className="space-y-2">
+          {candidates.map((candidate, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleSelectCandidate(candidate)}
+              className="w-full text-left p-2.5 rounded-md bg-muted/50 hover:bg-muted border border-transparent hover:border-border transition-colors"
+            >
+              <p className="font-medium text-sm text-foreground">{candidate.cardType}</p>
+              {candidate.issuer && (
+                <p className="text-xs text-muted-foreground">{candidate.issuer}</p>
+              )}
+              {candidate.rewardCategories.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {candidate.rewardCategories.slice(0, 3).map((r, i) => (
+                    <Badge key={i} variant="outline" className="text-xs py-0">
+                      {r.category}: {r.rate}{r.unit === 'percent' ? '%' : 'x'}
+                    </Badge>
+                  ))}
+                  {candidate.rewardCategories.length > 3 && (
+                    <span className="text-xs text-muted-foreground">+{candidate.rewardCategories.length - 3} more</span>
+                  )}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <Button size="sm" variant="ghost" onClick={handleSkip} className="w-full text-muted-foreground">
+          <X className="w-3 h-3 mr-1" />
+          None of these
+        </Button>
+      </div>
+    );
+  }
+
+  // Show single-candidate confirmation
+  if (selectedCandidate) {
     return (
       <div className="space-y-3 p-3 rounded-lg bg-primary/5 border border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-primary" />
           <span className="text-sm font-medium text-foreground">Confirm Card Type</span>
           <Badge
-            variant={pendingConfirmation.confidence === 'high' ? 'default' : 'secondary'}
+            variant={selectedCandidate.confidence === 'high' ? 'default' : 'secondary'}
             className="ml-auto text-xs"
           >
-            {pendingConfirmation.confidence} confidence
+            {selectedCandidate.confidence} confidence
           </Badge>
         </div>
         
         <div className="p-2 rounded bg-muted/50">
-          <p className="font-medium text-sm">{pendingConfirmation.suggestedType}</p>
-          {pendingConfirmation.suggestedIssuer && (
-            <p className="text-xs text-muted-foreground">{pendingConfirmation.suggestedIssuer}</p>
+          <p className="font-medium text-sm">{selectedCandidate.cardType}</p>
+          {selectedCandidate.issuer && (
+            <p className="text-xs text-muted-foreground">{selectedCandidate.issuer}</p>
           )}
-          {pendingConfirmation.suggestedRewards.length > 0 && (
+          {selectedCandidate.rewardCategories.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1.5">
-              {pendingConfirmation.suggestedRewards.slice(0, 3).map((reward, idx) => (
+              {selectedCandidate.rewardCategories.slice(0, 3).map((reward, idx) => (
                 <Badge key={idx} variant="outline" className="text-xs">
                   {reward.category}: {reward.rate}
                   {reward.unit === 'percent' ? '%' : 'x'}
                 </Badge>
               ))}
-              {pendingConfirmation.suggestedRewards.length > 3 && (
+              {selectedCandidate.rewardCategories.length > 3 && (
                 <Badge variant="outline" className="text-xs">
-                  +{pendingConfirmation.suggestedRewards.length - 3} more
+                  +{selectedCandidate.rewardCategories.length - 3} more
                 </Badge>
               )}
             </div>
@@ -149,7 +201,7 @@ export function CardIdentifier({
             <Check className="w-3 h-3 mr-1" />
             Confirm
           </Button>
-          <Button size="sm" variant="outline" onClick={handleSkipConfirmation}>
+          <Button size="sm" variant="outline" onClick={handleSkip}>
             <X className="w-3 h-3 mr-1" />
             Skip
           </Button>
