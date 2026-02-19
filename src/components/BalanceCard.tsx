@@ -11,12 +11,12 @@ interface BalanceCardProps {
 }
 
 export function BalanceCard({ transactions }: BalanceCardProps) {
-  const { range, setRange, filterRent } = useTimeFrame();
+  const { range, setRange, filterRent, customStartDate, customEndDate } = useTimeFrame();
 
   const filteredTransactions = useMemo(() => {
-    const rangeFiltered = filterTransactionsByRange(transactions, range);
+    const rangeFiltered = filterTransactionsByRange(transactions, range, customStartDate, customEndDate);
     return filterRent(rangeFiltered);
-  }, [transactions, range, filterRent]);
+  }, [transactions, range, filterRent, customStartDate, customEndDate]);
 
   const { totalBalance, totalIncome, totalExpenses, totalTransfers, savingsRate } = useMemo(() => {
     const income = filteredTransactions

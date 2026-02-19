@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Category, Transaction } from '@/types/budget';
 import { Pencil, Check, X, Plus, Lightbulb } from 'lucide-react';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
-import { getDateRangeStart } from '@/lib/dateRangeUtils';
-import { startOfDay, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { getDateRange } from '@/lib/dateRangeUtils';
+import { subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { ChartDrilldownSheet } from '@/components/charts/ChartDrilldownSheet';
 
 interface CategorySpendListProps {
@@ -26,13 +26,12 @@ export function CategorySpendList({
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [drilldownCategory, setDrilldownCategory] = useState<string | null>(null);
-  const { includeRent, range } = useTimeFrame();
+  const { includeRent, range, customStartDate, customEndDate } = useTimeFrame();
 
   // Calculate actual spend by category from transactions
   const spendByCategory = useMemo(() => {
-    const startDate = getDateRangeStart(range);
-    const endDate = startOfDay(new Date());
-    
+    const { start: startDate, end: endDate } = getDateRange(range, customStartDate, customEndDate);
+
     const filteredTransactions = transactions.filter(t => {
       const txDate = new Date(t.date);
       const withinRange = txDate >= startDate && txDate <= endDate;
@@ -45,7 +44,7 @@ export function CategorySpendList({
       spend[t.category] = (spend[t.category] || 0) + t.amount;
     });
     return spend;
-  }, [transactions, range, includeRent]);
+  }, [transactions, range, includeRent, customStartDate, customEndDate]);
 
   // Compute suggested monthly budget per category (avg over past 3-6 months)
   const suggestedBudgets = useMemo(() => {
@@ -128,15 +127,14 @@ export function CategorySpendList({
   // Transactions for the drilldown sheet
   const drilldownTransactions = useMemo(() => {
     if (!drilldownCategory) return [];
-    const startDate = getDateRangeStart(range);
-    const endDate = startOfDay(new Date());
+    const { start: startDate, end: endDate } = getDateRange(range, customStartDate, customEndDate);
     return transactions.filter(t => {
       const txDate = new Date(t.date);
       const withinRange = txDate >= startDate && txDate <= endDate;
       const rentFilter = includeRent || t.category !== 'Rent';
       return t.type === 'expense' && t.category === drilldownCategory && withinRange && rentFilter;
     });
-  }, [drilldownCategory, transactions, range, includeRent]);
+  }, [drilldownCategory, transactions, range, includeRent, customStartDate, customEndDate]);
 
   const handleStartEdit = (categoryName: string, currentBudget: number) => {
     setEditingCategory(categoryName);

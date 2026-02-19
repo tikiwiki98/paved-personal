@@ -2,6 +2,30 @@ import { parseISO, subMonths, subYears, startOfMonth, startOfYear, isAfter, isEq
 import { Transaction } from '@/types/budget';
 import { TimeFrameRange } from '@/contexts/TimeFrameContext';
 
+/**
+ * Centralized helper: returns { start, end } for any range including custom.
+ * For presets, end is always today. For custom, uses provided dates.
+ */
+export function getDateRange(
+  range: TimeFrameRange,
+  customStartDate?: string | null,
+  customEndDate?: string | null,
+): { start: Date; end: Date } {
+  const today = startOfDay(new Date());
+
+  if (range === 'custom' && customStartDate && customEndDate) {
+    return {
+      start: startOfDay(parseISO(customStartDate)),
+      end: startOfDay(parseISO(customEndDate)),
+    };
+  }
+
+  return {
+    start: getDateRangeStart(range),
+    end: today,
+  };
+}
+
 export function getDateRangeStart(range: TimeFrameRange): Date {
   const now = new Date();
   
@@ -23,14 +47,18 @@ export function getDateRangeStart(range: TimeFrameRange): Date {
   }
 }
 
-export function filterTransactionsByRange(transactions: Transaction[], range: TimeFrameRange): Transaction[] {
-  const startDate = getDateRangeStart(range);
-  const today = startOfDay(new Date());
+export function filterTransactionsByRange(
+  transactions: Transaction[],
+  range: TimeFrameRange,
+  customStartDate?: string | null,
+  customEndDate?: string | null,
+): Transaction[] {
+  const { start: startDate, end: endDate } = getDateRange(range, customStartDate, customEndDate);
   
   return transactions.filter((t) => {
     const transactionDate = startOfDay(parseISO(t.date));
     const isAfterStart = isAfter(transactionDate, startDate) || isEqual(transactionDate, startDate);
-    const isNotFuture = isBefore(transactionDate, today) || isEqual(transactionDate, today);
+    const isNotFuture = isBefore(transactionDate, endDate) || isEqual(transactionDate, endDate);
     return isAfterStart && isNotFuture;
   });
 }
@@ -46,28 +74,32 @@ export function getEarliestTransactionDate(transactions: Transaction[]): Date | 
 // Get the effective date range for display (respecting earliest transaction)
 export function getEffectiveDateRange(
   range: TimeFrameRange,
-  earliestTransactionDate: Date | null
+  earliestTransactionDate: Date | null,
+  customStartDate?: string | null,
+  customEndDate?: string | null,
 ): { start: Date; end: Date; label: string } {
-  const today = startOfDay(new Date());
-  const rangeStart = getDateRangeStart(range);
+  const { start: rangeStart, end: rangeEnd } = getDateRange(range, customStartDate, customEndDate);
   
   // Use the later of range start or earliest transaction date
   const effectiveStart = earliestTransactionDate && isAfter(earliestTransactionDate, rangeStart)
     ? startOfDay(earliestTransactionDate)
     : rangeStart;
   
-  const formatStr = effectiveStart.getFullYear() === today.getFullYear() ? 'MMM d' : 'MMM d, yyyy';
-  const endFormatStr = 'MMM d';
+  const formatStr = effectiveStart.getFullYear() === rangeEnd.getFullYear() ? 'MMM d' : 'MMM d, yyyy';
+  const endFormatStr = rangeEnd.getFullYear() === effectiveStart.getFullYear() ? 'MMM d' : 'MMM d, yyyy';
   
-  const label = `${format(effectiveStart, formatStr)} – ${format(today, endFormatStr)}`;
+  const label = `${format(effectiveStart, formatStr)} – ${format(rangeEnd, endFormatStr)}`;
   
-  return { start: effectiveStart, end: today, label };
+  return { start: effectiveStart, end: rangeEnd, label };
 }
 
 // Determine which ranges are meaningful given the earliest transaction date
+// Excludes 'custom' since it's always available
+type PresetRange = Exclude<TimeFrameRange, 'custom'>;
+
 export function getRangeMeaningfulness(
   earliestTransactionDate: Date | null
-): Record<TimeFrameRange, { enabled: boolean; reason?: string }> {
+): Record<PresetRange, { enabled: boolean; reason?: string }> {
   const today = startOfDay(new Date());
   
   if (!earliestTransactionDate) {
@@ -83,14 +115,12 @@ export function getRangeMeaningfulness(
   
   const daysOfHistory = differenceInDays(today, startOfDay(earliestTransactionDate));
   
-  // Define thresholds for each range to be meaningful
-  // A range is only meaningful if it would show more data than a shorter range
-  const result: Record<TimeFrameRange, { enabled: boolean; reason?: string }> = {
-    '1m': { enabled: true }, // Always enabled if there's any data
+  const result: Record<PresetRange, { enabled: boolean; reason?: string }> = {
+    '1m': { enabled: true },
     '3m': { enabled: daysOfHistory > 35, reason: 'Not enough historical data yet' },
     '6m': { enabled: daysOfHistory > 95, reason: 'Not enough historical data yet' },
     '1y': { enabled: daysOfHistory > 185, reason: 'Not enough historical data yet' },
-    'mtd': { enabled: true }, // Always enabled
+    'mtd': { enabled: true },
     'ytd': { enabled: daysOfHistory > 35 || today.getMonth() > 0, reason: 'Not enough historical data yet' },
   };
   
@@ -98,18 +128,13 @@ export function getRangeMeaningfulness(
 }
 
 // Get the smart default range based on available data
-export function getSmartDefaultRange(earliestTransactionDate: Date | null): TimeFrameRange {
+export function getSmartDefaultRange(earliestTransactionDate: Date | null): PresetRange {
   if (!earliestTransactionDate) return 'mtd';
   
   const today = startOfDay(new Date());
   const daysOfHistory = differenceInDays(today, startOfDay(earliestTransactionDate));
   
-  // If very little data, use MTD
   if (daysOfHistory <= 14) return 'mtd';
-  
-  // If less than 2 months, use 1M
   if (daysOfHistory <= 45) return '1m';
-  
-  // Otherwise MTD is a good default
   return 'mtd';
 }

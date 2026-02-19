@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useMemo, use
 import { Transaction } from '@/types/budget';
 import { getSmartDefaultRange, getEarliestTransactionDate, getRangeMeaningfulness } from '@/lib/dateRangeUtils';
 
-export type TimeFrameRange = '1m' | '3m' | '6m' | '1y' | 'mtd' | 'ytd';
+export type TimeFrameRange = '1m' | '3m' | '6m' | '1y' | 'mtd' | 'ytd' | 'custom';
 
 interface TimeFrameContextType {
   range: TimeFrameRange;
@@ -11,18 +11,22 @@ interface TimeFrameContextType {
   setIncludeRent: (include: boolean) => void;
   filterRent: (transactions: Transaction[]) => Transaction[];
   initializeWithTransactions: (transactions: Transaction[]) => void;
+  customStartDate: string | null;
+  customEndDate: string | null;
+  setCustomRange: (start: string, end: string) => void;
+  clearCustomRange: () => void;
 }
 
 const TimeFrameContext = createContext<TimeFrameContextType | undefined>(undefined);
 
 const INCLUDE_RENT_KEY = 'budget-app-include-rent';
-const INITIALIZED_KEY = 'budget-app-timeframe-initialized';
 
 export function TimeFrameProvider({ children }: { children: ReactNode }) {
   const [range, setRangeState] = useState<TimeFrameRange>('mtd');
   const [initialized, setInitialized] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState<string | null>(null);
+  const [customEndDate, setCustomEndDate] = useState<string | null>(null);
   const [includeRent, setIncludeRentState] = useState<boolean>(() => {
-    // Initialize from localStorage, default to true (include rent)
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem(INCLUDE_RENT_KEY);
       return stored === null ? true : stored === 'true';
@@ -30,7 +34,6 @@ export function TimeFrameProvider({ children }: { children: ReactNode }) {
     return true;
   });
 
-  // Persist to localStorage when changed
   useEffect(() => {
     localStorage.setItem(INCLUDE_RENT_KEY, String(includeRent));
   }, [includeRent]);
@@ -39,12 +42,27 @@ export function TimeFrameProvider({ children }: { children: ReactNode }) {
     setIncludeRentState(include);
   };
 
-  // Smart range setter that validates the range is meaningful
   const setRange = useCallback((newRange: TimeFrameRange) => {
+    if (newRange !== 'custom') {
+      // Clear custom dates when switching to a preset
+      setCustomStartDate(null);
+      setCustomEndDate(null);
+    }
     setRangeState(newRange);
   }, []);
 
-  // Initialize with smart default based on transactions
+  const setCustomRange = useCallback((start: string, end: string) => {
+    setCustomStartDate(start);
+    setCustomEndDate(end);
+    setRangeState('custom');
+  }, []);
+
+  const clearCustomRange = useCallback(() => {
+    setCustomStartDate(null);
+    setCustomEndDate(null);
+    setRangeState('mtd');
+  }, []);
+
   const initializeWithTransactions = useCallback((transactions: Transaction[]) => {
     if (initialized) return;
     
@@ -52,7 +70,6 @@ export function TimeFrameProvider({ children }: { children: ReactNode }) {
     const smartDefault = getSmartDefaultRange(earliestDate);
     const meaningfulness = getRangeMeaningfulness(earliestDate);
     
-    // Only set if the smart default is meaningful, otherwise fall back to mtd
     if (meaningfulness[smartDefault].enabled) {
       setRangeState(smartDefault);
     } else if (meaningfulness['mtd'].enabled) {
@@ -64,7 +81,6 @@ export function TimeFrameProvider({ children }: { children: ReactNode }) {
     setInitialized(true);
   }, [initialized]);
 
-  // Helper function to filter out rent transactions when needed
   const filterRent = useMemo(() => {
     return (transactions: Transaction[]) => {
       if (includeRent) {
@@ -83,7 +99,11 @@ export function TimeFrameProvider({ children }: { children: ReactNode }) {
       includeRent, 
       setIncludeRent, 
       filterRent,
-      initializeWithTransactions 
+      initializeWithTransactions,
+      customStartDate,
+      customEndDate,
+      setCustomRange,
+      clearCustomRange,
     }}>
       {children}
     </TimeFrameContext.Provider>

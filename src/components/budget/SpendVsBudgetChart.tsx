@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
-import { getDateRangeStart } from '@/lib/dateRangeUtils';
-import { startOfDay } from 'date-fns';
+import { getDateRange } from '@/lib/dateRangeUtils';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, ReferenceLine } from 'recharts';
 
 interface SpendVsBudgetChartProps {
@@ -12,12 +11,11 @@ interface SpendVsBudgetChartProps {
 }
 
 export function SpendVsBudgetChart({ transactions, budgets, onCategoryClick }: SpendVsBudgetChartProps) {
-  const { range, includeRent } = useTimeFrame();
+  const { range, includeRent, customStartDate, customEndDate } = useTimeFrame();
 
   const chartData = useMemo(() => {
-    const startDate = getDateRangeStart(range);
-    const endDate = startOfDay(new Date());
-    
+    const { start: startDate, end: endDate } = getDateRange(range, customStartDate, customEndDate);
+
     // Filter transactions by date and rent preference
     const filteredTransactions = transactions.filter(t => {
       const txDate = new Date(t.date);
@@ -44,7 +42,7 @@ export function SpendVsBudgetChart({ transactions, budgets, onCategoryClick }: S
       .sort((a, b) => b.spent - a.spent); // Sort by spend descending
 
     return data;
-  }, [transactions, budgets, range, includeRent]);
+  }, [transactions, budgets, range, includeRent, customStartDate, customEndDate]);
 
   const { totalSpent, totalBudget } = useMemo(() => {
     return chartData.reduce(
