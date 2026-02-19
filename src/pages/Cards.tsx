@@ -7,9 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CreditCard as CreditCardIcon, Plus, Trash2, Sparkles, Check, X, RefreshCw } from 'lucide-react';
+import { Loader2, CreditCard as CreditCardIcon, Plus, Trash2, Sparkles, Check, X } from 'lucide-react';
 import { CreditCard, RewardCategory } from '@/types/budget';
 import { toast } from 'sonner';
+
+interface CardCandidate {
+  cardType: string;
+  issuer: string;
+  rewardCategories: RewardCategory[];
+  confidence: 'high' | 'medium' | 'low';
+}
 
 function CardItem({
   card,
@@ -133,24 +140,18 @@ function AddCardForm({
   );
 }
 
-function ConfirmCardModal({
-  card,
-  suggestedType,
-  suggestedIssuer,
-  suggestedRewards,
-  confidence,
-  onConfirm,
+function CandidateSelectionPanel({
+  candidates,
+  onSelect,
   onSkip,
   isLoading,
+  cardName,
 }: {
-  card: CreditCard;
-  suggestedType: string | null;
-  suggestedIssuer: string | null;
-  suggestedRewards: RewardCategory[];
-  confidence: 'high' | 'medium' | 'low' | null;
-  onConfirm: () => void;
+  candidates: CardCandidate[];
+  onSelect: (candidate: CardCandidate) => void;
   onSkip: () => void;
   isLoading: boolean;
+  cardName: string;
 }) {
   if (isLoading) {
     return (
@@ -161,7 +162,7 @@ function ConfirmCardModal({
             <div>
               <p className="font-medium text-foreground">Looking up card benefits...</p>
               <p className="text-sm text-muted-foreground">
-                We're identifying "{card.card_name}" and its rewards
+                We're identifying "{cardName}" and its rewards
               </p>
             </div>
           </div>
@@ -170,38 +171,103 @@ function ConfirmCardModal({
     );
   }
 
-  if (!suggestedType) {
-    return null;
-  }
+  if (candidates.length === 0) return null;
 
   return (
     <Card className="bg-card border-primary/30 border-2">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-primary" />
+          <CardTitle className="text-base">
+            {candidates.length === 1 ? 'Confirm Card Type' : 'We found several matches'}
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {candidates.length > 1 && (
+          <p className="text-sm text-muted-foreground">Which card is this?</p>
+        )}
+        
+        {candidates.map((candidate, idx) => (
+          <button
+            key={idx}
+            onClick={() => onSelect(candidate)}
+            className="w-full text-left p-3 rounded-lg bg-muted/50 hover:bg-muted border border-transparent hover:border-border transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-sm text-foreground">{candidate.cardType}</p>
+                {candidate.issuer && (
+                  <p className="text-xs text-muted-foreground">{candidate.issuer}</p>
+                )}
+              </div>
+              {candidate.confidence && (
+                <Badge
+                  variant={candidate.confidence === 'high' ? 'default' : 'secondary'}
+                  className="text-xs shrink-0"
+                >
+                  {candidate.confidence}
+                </Badge>
+              )}
+            </div>
+            {candidate.rewardCategories.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {candidate.rewardCategories.slice(0, 4).map((reward, i) => (
+                  <Badge key={i} variant="outline" className="text-xs">
+                    {reward.category}: {reward.rate}
+                    {reward.unit === 'percent' ? '%' : 'x'}
+                  </Badge>
+                ))}
+                {candidate.rewardCategories.length > 4 && (
+                  <span className="text-xs text-muted-foreground">+{candidate.rewardCategories.length - 4} more</span>
+                )}
+              </div>
+            )}
+          </button>
+        ))}
+
+        <Button variant="ghost" size="sm" onClick={onSkip} className="w-full text-muted-foreground mt-1">
+          <X className="w-4 h-4 mr-2" />
+          {candidates.length === 1 ? 'Skip' : 'None of these'}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ConfirmSelectedCard({
+  candidate,
+  onConfirm,
+  onBack,
+}: {
+  candidate: CardCandidate;
+  onConfirm: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <Card className="bg-card border-primary/30 border-2">
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-primary" />
           <CardTitle className="text-base">Confirm Card Type</CardTitle>
-          {confidence && (
-            <Badge
-              variant={confidence === 'high' ? 'default' : 'secondary'}
-              className="ml-auto text-xs"
-            >
-              {confidence} confidence
-            </Badge>
-          )}
+          <Badge
+            variant={candidate.confidence === 'high' ? 'default' : 'secondary'}
+            className="ml-auto text-xs"
+          >
+            {candidate.confidence} confidence
+          </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Is this the correct card?
-        </p>
+        <p className="text-sm text-muted-foreground">Is this the correct card?</p>
         <div className="p-3 rounded-lg bg-muted/50">
-          <p className="font-semibold text-foreground">{suggestedType}</p>
-          {suggestedIssuer && (
-            <p className="text-sm text-muted-foreground">{suggestedIssuer}</p>
+          <p className="font-semibold text-foreground">{candidate.cardType}</p>
+          {candidate.issuer && (
+            <p className="text-sm text-muted-foreground">{candidate.issuer}</p>
           )}
-          {suggestedRewards.length > 0 && (
+          {candidate.rewardCategories.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {suggestedRewards.map((reward, idx) => (
+              {candidate.rewardCategories.map((reward, idx) => (
                 <Badge key={idx} variant="outline" className="text-xs">
                   {reward.category}: {reward.rate}
                   {reward.unit === 'percent' ? '%' : 'x'}
@@ -215,9 +281,9 @@ function ConfirmCardModal({
             <Check className="w-4 h-4 mr-2" />
             Yes, that's correct
           </Button>
-          <Button variant="outline" onClick={onSkip}>
+          <Button variant="outline" onClick={onBack}>
             <X className="w-4 h-4 mr-2" />
-            Skip
+            Back
           </Button>
         </div>
       </CardContent>
@@ -238,14 +304,14 @@ const Cards = () => {
   } = useCreditCards();
 
   const [isAdding, setIsAdding] = useState(false);
-  const [pendingConfirmation, setPendingConfirmation] = useState<{
-    cardId: string;
-    isLookingUp: boolean;
-    suggestedType: string | null;
-    suggestedIssuer: string | null;
-    suggestedRewards: RewardCategory[];
-    confidence: 'high' | 'medium' | 'low' | null;
-  } | null>(null);
+  const [lookingUpCardId, setLookingUpCardId] = useState<string | null>(null);
+
+  // Multi-candidate state
+  const [pendingCardId, setPendingCardId] = useState<string | null>(null);
+  const [pendingCardName, setPendingCardName] = useState('');
+  const [isLookingUp, setIsLookingUp] = useState(false);
+  const [candidates, setCandidates] = useState<CardCandidate[]>([]);
+  const [selectedCandidate, setSelectedCandidate] = useState<CardCandidate | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -253,84 +319,91 @@ const Cards = () => {
     }
   }, [user, authLoading, navigate]);
 
+  const startLookup = async (cardId: string, cardName: string) => {
+    setPendingCardId(cardId);
+    setPendingCardName(cardName);
+    setIsLookingUp(true);
+    setCandidates([]);
+    setSelectedCandidate(null);
+
+    const results = await lookupCardBenefits(cardName);
+
+    if (results && results.length > 0) {
+      setCandidates(results);
+    } else {
+      clearPending();
+      toast.info('Could not look up card benefits. You can add them manually later.');
+    }
+    setIsLookingUp(false);
+  };
+
+  const clearPending = () => {
+    setPendingCardId(null);
+    setPendingCardName('');
+    setCandidates([]);
+    setSelectedCandidate(null);
+    setIsLookingUp(false);
+  };
+
   const handleAddCard = async (cardName: string) => {
     setIsAdding(true);
     const newCard = await addCreditCard(cardName);
     setIsAdding(false);
 
     if (newCard) {
-      // Start looking up benefits
-      setPendingConfirmation({
-        cardId: newCard.id,
-        isLookingUp: true,
-        suggestedType: null,
-        suggestedIssuer: null,
-        suggestedRewards: [],
-        confidence: null,
-      });
-
-      const benefits = await lookupCardBenefits(cardName);
-
-      if (benefits) {
-        setPendingConfirmation({
-          cardId: newCard.id,
-          isLookingUp: false,
-          suggestedType: benefits.cardType,
-          suggestedIssuer: benefits.issuer,
-          suggestedRewards: benefits.rewardCategories,
-          confidence: benefits.confidence,
-        });
-      } else {
-        setPendingConfirmation(null);
-        toast.info('Could not look up card benefits. You can add them manually later.');
-      }
+      await startLookup(newCard.id, cardName);
     }
   };
 
-  const handleConfirmCard = async () => {
-    if (!pendingConfirmation) return;
+  const handleSelectCandidate = (candidate: CardCandidate) => {
+    if (candidates.length === 1) {
+      // Single candidate — selecting it means confirm
+      handleConfirmCandidate(candidate);
+    } else {
+      // Multi — go to confirm step
+      setSelectedCandidate(candidate);
+      setCandidates([]);
+    }
+  };
 
-    const success = await updateCreditCard(pendingConfirmation.cardId, {
-      card_type: pendingConfirmation.suggestedType,
-      issuer: pendingConfirmation.suggestedIssuer,
-      reward_categories: pendingConfirmation.suggestedRewards,
+  const handleConfirmCandidate = async (candidate?: CardCandidate) => {
+    const toConfirm = candidate || selectedCandidate;
+    if (!toConfirm || !pendingCardId) return;
+
+    const success = await updateCreditCard(pendingCardId, {
+      card_type: toConfirm.cardType,
+      issuer: toConfirm.issuer,
+      reward_categories: toConfirm.rewardCategories,
     });
 
     if (success) {
       toast.success('Card confirmed with rewards!');
     }
-    setPendingConfirmation(null);
+    clearPending();
   };
 
-  const handleSkipConfirmation = () => {
-    setPendingConfirmation(null);
+  const handleSkip = () => {
+    clearPending();
+  };
+
+  const handleBackFromConfirm = () => {
+    // Go back to candidate list — re-trigger lookup
+    setSelectedCandidate(null);
+    if (pendingCardId && pendingCardName) {
+      startLookup(pendingCardId, pendingCardName);
+    }
   };
 
   const handleDeleteCard = async (id: string) => {
-    if (pendingConfirmation?.cardId === id) {
-      setPendingConfirmation(null);
+    if (pendingCardId === id) {
+      clearPending();
     }
     await deleteCreditCard(id);
   };
 
-  const [lookingUpCardId, setLookingUpCardId] = useState<string | null>(null);
-
   const handleLookupExistingCard = async (card: CreditCard) => {
     setLookingUpCardId(card.id);
-    
-    const benefits = await lookupCardBenefits(card.card_name);
-    
-    if (benefits) {
-      setPendingConfirmation({
-        cardId: card.id,
-        isLookingUp: false,
-        suggestedType: benefits.cardType,
-        suggestedIssuer: benefits.issuer,
-        suggestedRewards: benefits.rewardCategories,
-        confidence: benefits.confidence,
-      });
-    }
-    
+    await startLookup(card.id, card.card_name);
     setLookingUpCardId(null);
   };
 
@@ -345,10 +418,6 @@ const Cards = () => {
   if (!user) {
     return null;
   }
-
-  const pendingCard = pendingConfirmation
-    ? creditCards.find((c) => c.id === pendingConfirmation.cardId)
-    : null;
 
   return (
     <AppLayout>
@@ -371,19 +440,24 @@ const Cards = () => {
           <AddCardForm onAdd={handleAddCard} isAdding={isAdding} />
         </div>
 
-        {/* Pending Confirmation */}
-        {pendingCard && pendingConfirmation && (
+        {/* Candidate Selection / Confirmation */}
+        {pendingCardId && (
           <div className="mb-6">
-            <ConfirmCardModal
-              card={pendingCard}
-              suggestedType={pendingConfirmation.suggestedType}
-              suggestedIssuer={pendingConfirmation.suggestedIssuer}
-              suggestedRewards={pendingConfirmation.suggestedRewards}
-              confidence={pendingConfirmation.confidence}
-              onConfirm={handleConfirmCard}
-              onSkip={handleSkipConfirmation}
-              isLoading={pendingConfirmation.isLookingUp}
-            />
+            {selectedCandidate ? (
+              <ConfirmSelectedCard
+                candidate={selectedCandidate}
+                onConfirm={() => handleConfirmCandidate()}
+                onBack={handleBackFromConfirm}
+              />
+            ) : (
+              <CandidateSelectionPanel
+                candidates={candidates}
+                onSelect={handleSelectCandidate}
+                onSkip={handleSkip}
+                isLoading={isLookingUp}
+                cardName={pendingCardName}
+              />
+            )}
           </div>
         )}
 
@@ -400,7 +474,7 @@ const Cards = () => {
             </Card>
           ) : (
             creditCards
-              .filter((card) => card.id !== pendingConfirmation?.cardId)
+              .filter((card) => card.id !== pendingCardId)
               .map((card) => (
                 <CardItem
                   key={card.id}
