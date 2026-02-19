@@ -72,16 +72,28 @@ function buildPrompt(transactions: Transaction[]): string {
     recentByMonthCategory[monthKey][t.category].count += 1;
   });
 
-  // Calculate averages
+  // Calculate averages per category, using only months where the category appeared
   const categoryAvgSpend: Record<string, number> = {};
   const categoryAvgCount: Record<string, number> = {};
-  const monthCount = Object.keys(recentByMonthCategory).length || 1;
+  const categoryMonthsPresent: Record<string, number> = {};
+  const totalMonthCount = Object.keys(recentByMonthCategory).length || 1;
   
+  // First, count how many months each category appeared in and sum totals
+  const categorySumSpend: Record<string, number> = {};
+  const categorySumCount: Record<string, number> = {};
   for (const monthData of Object.values(recentByMonthCategory)) {
     for (const [cat, data] of Object.entries(monthData)) {
-      categoryAvgSpend[cat] = (categoryAvgSpend[cat] || 0) + data.total / monthCount;
-      categoryAvgCount[cat] = (categoryAvgCount[cat] || 0) + data.count / monthCount;
+      categorySumSpend[cat] = (categorySumSpend[cat] || 0) + data.total;
+      categorySumCount[cat] = (categorySumCount[cat] || 0) + data.count;
+      categoryMonthsPresent[cat] = (categoryMonthsPresent[cat] || 0) + 1;
     }
+  }
+  
+  // Average over months present (not all months) for a fairer comparison
+  for (const cat of Object.keys(categorySumSpend)) {
+    const months = categoryMonthsPresent[cat] || 1;
+    categoryAvgSpend[cat] = categorySumSpend[cat] / months;
+    categoryAvgCount[cat] = categorySumCount[cat] / months;
   }
 
   // Calculate variance/volatility
@@ -95,7 +107,7 @@ function buildPrompt(transactions: Transaction[]): string {
   }
 
   const totalCurrentMonth = Object.values(currentByCategory).reduce((a, b) => a + b, 0);
-  const totalRecentAvg = recentTxns.length > 0 ? recentTxns.reduce((a, t) => a + t.amount, 0) / monthCount : 0;
+  const totalRecentAvg = recentTxns.length > 0 ? recentTxns.reduce((a, t) => a + t.amount, 0) / totalMonthCount : 0;
   
   const sortedCategories = Object.entries(currentByCategory)
     .sort((a, b) => b[1] - a[1])
@@ -104,13 +116,14 @@ function buildPrompt(transactions: Transaction[]): string {
   // Find largest transactions
   const largestTxns = [...currentMonthTxns].sort((a, b) => b.amount - a.amount).slice(0, 3);
   
-  // Calculate percentage changes by category
-  const categoryChanges: { category: string; current: number; avg: number; pctChange: number }[] = [];
+  // Calculate percentage changes by category (min $25 avg to suppress noise from tiny historical values)
+  const categoryChanges: { category: string; current: number; avg: number; pctChange: number; monthsSeen: number }[] = [];
   for (const [cat, current] of Object.entries(currentByCategory)) {
     const avg = categoryAvgSpend[cat] || 0;
-    if (avg > 0) {
+    const monthsSeen = categoryMonthsPresent[cat] || 0;
+    if (avg >= 25) { // Only include if historical average is meaningful ($25+)
       const pctChange = ((current - avg) / avg) * 100;
-      categoryChanges.push({ category: cat, current, avg, pctChange });
+      categoryChanges.push({ category: cat, current, avg, pctChange, monthsSeen });
     }
   }
   categoryChanges.sort((a, b) => Math.abs(b.pctChange) - Math.abs(a.pctChange));
@@ -148,7 +161,7 @@ DATA CONTEXT:
 - Recent monthly average: $${totalRecentAvg.toFixed(0)}
 - Current month transactions: ${currentMonthTxns.length}
 - Top categories: ${sortedCategories.map(([cat, amt]) => `${cat} ($${amt.toFixed(0)})`).join(", ")}
-- Category changes vs avg: ${categoryChanges.slice(0, 3).map(c => `${c.category}: ${c.pctChange > 0 ? '+' : ''}${c.pctChange.toFixed(0)}%`).join(", ") || "N/A"}
+- Category changes vs avg: ${categoryChanges.slice(0, 3).map(c => `${c.category}: ${c.pctChange > 0 ? '+' : ''}${c.pctChange.toFixed(0)}% (avg $${c.avg.toFixed(0)} over ${c.monthsSeen} mo)`).join(", ") || "N/A"}
 - Frequency patterns: ${frequencyChanges.slice(0, 2).map(f => `${f.category}: ${f.current} txns vs ${f.avg.toFixed(1)} avg`).join(", ") || "N/A"}
 - Volatile categories: ${volatileCategories.map(([cat]) => cat).join(", ") || "N/A"}
 - Largest transactions: ${largestTxns.map(t => `${t.description}: $${t.amount.toFixed(0)} (${t.category})`).join("; ") || "N/A"}
