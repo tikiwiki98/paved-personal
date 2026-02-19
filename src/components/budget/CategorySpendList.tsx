@@ -14,6 +14,8 @@ interface CategorySpendListProps {
   transactions: Transaction[];
   budgets: Record<string, number>;
   onUpdateBudget: (params: { category: string; amount: number }) => void;
+  monthStart: Date;
+  monthEnd: Date;
 }
 
 export function CategorySpendList({ 
@@ -21,21 +23,19 @@ export function CategorySpendList({
   transactions, 
   budgets, 
   onUpdateBudget,
+  monthStart,
+  monthEnd,
 }: CategorySpendListProps) {
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [drilldownCategory, setDrilldownCategory] = useState<string | null>(null);
   const { includeRent } = useTimeFrame();
 
-  // Fixed monthly window: start of current month through today
-  const monthStart = useMemo(() => startOfMonth(new Date()), []);
-  const today = useMemo(() => new Date(), []);
-
-  // Calculate actual spend by category from transactions (current month only)
+  // Calculate actual spend by category from transactions using the provided month window
   const spendByCategory = useMemo(() => {
     const filteredTransactions = transactions.filter(t => {
       const txDate = new Date(t.date);
-      const withinRange = txDate >= monthStart && txDate <= today;
+      const withinRange = txDate >= monthStart && txDate <= monthEnd;
       const rentFilter = includeRent || t.category !== 'Rent';
       return t.type === 'expense' && withinRange && rentFilter;
     });
@@ -45,7 +45,7 @@ export function CategorySpendList({
       spend[t.category] = (spend[t.category] || 0) + t.amount;
     });
     return spend;
-  }, [transactions, includeRent, monthStart, today]);
+  }, [transactions, includeRent, monthStart, monthEnd]);
 
   // Compute suggested monthly budget per category (avg over past 3-6 months)
   const suggestedBudgets = useMemo(() => {
@@ -130,11 +130,11 @@ export function CategorySpendList({
     if (!drilldownCategory) return [];
     return transactions.filter(t => {
       const txDate = new Date(t.date);
-      const withinRange = txDate >= monthStart && txDate <= today;
+      const withinRange = txDate >= monthStart && txDate <= monthEnd;
       const rentFilter = includeRent || t.category !== 'Rent';
       return t.type === 'expense' && t.category === drilldownCategory && withinRange && rentFilter;
     });
-  }, [drilldownCategory, transactions, includeRent, monthStart, today]);
+  }, [drilldownCategory, transactions, includeRent, monthStart, monthEnd]);
 
   const handleStartEdit = (categoryName: string, currentBudget: number) => {
     setEditingCategory(categoryName);
