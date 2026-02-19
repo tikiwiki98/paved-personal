@@ -15,7 +15,7 @@ import { IncludeRentToggle } from '@/components/IncludeRentToggle';
 import { SpendInsights } from '@/components/SpendInsights';
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 import { Loader2, TrendingUp } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { useRangeLabel } from '@/hooks/useRangeLabel';
 
 const Trends = () => {
   const { user, loading: authLoading } = useAuth();
@@ -42,11 +42,7 @@ const Trends = () => {
       .reduce((acc, t) => acc + t.amount, 0);
   }, [filteredTransactions]);
 
-  const rangeLabel = range === 'custom' && customStartDate && customEndDate
-    ? `${format(parseISO(customStartDate), 'MMM d')} – ${format(parseISO(customEndDate), 'MMM d')}`
-    : range === 'mtd' ? format(new Date(), 'MMMM') : 
-      range === 'ytd' ? format(new Date(), 'yyyy') :
-      range.toUpperCase();
+  const rangeLabel = useRangeLabel();
 
   if (authLoading || transactionsLoading || categoriesLoading || cardsLoading) {
     return (

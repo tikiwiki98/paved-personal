@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChartDrilldownSheet } from './ChartDrilldownSheet';
+import { useRangeLabel } from '@/hooks/useRangeLabel';
 
 interface CreditCardSpendingChartProps {
   transactions: Transaction[];
@@ -31,6 +32,7 @@ export function CreditCardSpendingChart({
 }: CreditCardSpendingChartProps) {
   const [drilldownOpen, setDrilldownOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
+  const rangeLabel = useRangeLabel();
 
   const data = useMemo(() => {
     const expensesByCardId = transactions
@@ -74,12 +76,15 @@ export function CreditCardSpendingChart({
       <Card className="bg-card border-border p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-foreground">Spending by Credit Card</h3>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/cards" className="flex items-center gap-1.5 text-muted-foreground">
-              <Settings2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Manage Cards</span>
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-sm text-muted-foreground">{rangeLabel}</span>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/cards" className="flex items-center gap-1.5 text-muted-foreground">
+                <Settings2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Manage Cards</span>
+              </Link>
+            </Button>
+          </div>
         </div>
         <div className="h-64 flex items-center justify-center text-muted-foreground">
           <p className="text-center">
@@ -100,12 +105,15 @@ export function CreditCardSpendingChart({
       <Card className="bg-card border-border p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-foreground">Spending by Credit Card</h3>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/cards" className="flex items-center gap-1.5 text-muted-foreground">
-              <Settings2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Manage Cards</span>
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-sm text-muted-foreground">{rangeLabel}</span>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/cards" className="flex items-center gap-1.5 text-muted-foreground">
+                <Settings2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Manage Cards</span>
+              </Link>
+            </Button>
+          </div>
         </div>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">

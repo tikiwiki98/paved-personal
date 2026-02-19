@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Transaction } from '@/types/budget';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
+import { useRangeLabel } from '@/hooks/useRangeLabel';
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 import { ChartDrilldownSheet } from '@/components/charts/ChartDrilldownSheet';
 import {
@@ -137,11 +138,7 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
     setDrilldownOpen(true);
   }, [rentFilteredTransactions]);
 
-  const rangeLabel = range === 'custom' && customStartDate && customEndDate
-    ? `${format(parseISO(customStartDate), 'MMM d')} – ${format(parseISO(customEndDate), 'MMM d')}`
-    : range === 'mtd' ? format(new Date(), 'MMMM') :
-      range === 'ytd' ? format(new Date(), 'yyyy') :
-      range.toUpperCase();
+  const rangeLabel = useRangeLabel();
 
   if (data.length === 0) {
     return (
