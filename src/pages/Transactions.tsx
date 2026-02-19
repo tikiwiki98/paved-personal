@@ -17,7 +17,18 @@ import { useCategories } from '@/hooks/useCategories';
 import { useCreditCards } from '@/hooks/useCreditCards';
 import { cn } from '@/lib/utils';
 
-const PAYMENT_TYPES = ['Credit Card', 'Cash', 'Venmo', 'Crypto', 'Bank Transfer', 'Other'];
+const PAYMENT_LABELS: Record<string, string> = {
+  credit_card: 'Credit Card',
+  debit_card: 'Debit Card',
+  cash: 'Cash',
+  venmo: 'Venmo',
+  paypal: 'PayPal',
+  crypto: 'Crypto',
+  bank_transfer: 'Bank Transfer',
+  zelle: 'Zelle',
+  check: 'Check',
+  other: 'Other',
+};
 
 const Transactions = () => {
   const navigate = useNavigate();
@@ -42,9 +53,9 @@ const Transactions = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Reset credit card filter when payment type changes away from Credit Card
+  // Reset credit card filter when payment type changes away from credit_card
   useEffect(() => {
-    if (paymentTypeFilter !== 'Credit Card') {
+    if (paymentTypeFilter !== 'credit_card') {
       setCreditCardFilter('all');
     }
   }, [paymentTypeFilter]);
@@ -86,10 +97,14 @@ const Transactions = () => {
   }, [transactions]);
 
   const allPaymentTypes = useMemo(() => {
-    const types = new Set(transactions.map((t) => t.payment_type).filter(Boolean));
-    // Merge with default payment types
-    PAYMENT_TYPES.forEach((type) => types.add(type));
-    return Array.from(types) as string[];
+    // Collect canonical snake_case payment types from transactions
+    const typesFromTx = new Set(
+      transactions.map((t) => t.payment_type).filter(Boolean) as string[]
+    );
+    // Merge with canonical keys, deduplicated
+    const allKeys = new Set([...Object.keys(PAYMENT_LABELS), ...typesFromTx]);
+    // Only include types that exist in PAYMENT_LABELS or in transactions
+    return Array.from(allKeys).filter(k => PAYMENT_LABELS[k] || typesFromTx.has(k));
   }, [transactions]);
 
   const hasActiveFilters = paymentTypeFilter !== 'all' || creditCardFilter !== 'all' || startDate || endDate;
@@ -179,7 +194,7 @@ const Transactions = () => {
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                   <ChevronDown className={cn("w-4 h-4 mr-2 transition-transform", filtersExpanded && "rotate-180")} />
-                  More Filters
+                  {filtersExpanded ? 'Less Filters' : 'More Filters'}
                   {hasActiveFilters && (
                     <span className="ml-2 w-2 h-2 rounded-full bg-primary" />
                   )}
@@ -205,14 +220,14 @@ const Transactions = () => {
                     <SelectContent className="bg-card border-border z-50">
                       <SelectItem value="all">All Payment Types</SelectItem>
                       {allPaymentTypes.map((type) => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                        <SelectItem key={type} value={type}>{PAYMENT_LABELS[type] || type}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Credit Card Filter - only shown when Payment Type is Credit Card */}
-                {paymentTypeFilter === 'Credit Card' && (
+                {paymentTypeFilter === 'credit_card' && (
                   <div className="space-y-2">
                     <label className="text-sm text-muted-foreground">Credit Card</label>
                     <Select value={creditCardFilter} onValueChange={setCreditCardFilter}>
