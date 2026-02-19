@@ -9,7 +9,7 @@ import { useBudgets } from '@/hooks/useBudgets';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
 import { Loader2 } from 'lucide-react';
 import { CategorySpendList } from '@/components/budget/CategorySpendList';
-import { getDateRange } from '@/lib/dateRangeUtils';
+import { startOfMonth, format } from 'date-fns';
 
 const Budget = () => {
   const { user, loading: authLoading } = useAuth();
@@ -17,7 +17,7 @@ const Budget = () => {
   const { transactions, isLoading: transactionsLoading } = useTransactions();
   const { categories, isLoading: categoriesLoading, upsertBudget } = useCategories(transactions, 'monthly');
   const { budgets: budgetsArray, isLoading: budgetsLoading } = useBudgets('monthly');
-  const { initializeWithTransactions, range, includeRent, customStartDate, customEndDate } = useTimeFrame();
+  const { initializeWithTransactions, includeRent } = useTimeFrame();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -43,12 +43,15 @@ const Budget = () => {
   }, [budgetsArray]);
 
   // Summary stats
-  const { totalSpent, totalBudgeted, overCount } = useMemo(() => {
-    const { start: startDate, end: endDate } = getDateRange(range, customStartDate, customEndDate);
+  // Fixed monthly window: start of current month through today
+  const monthStart = useMemo(() => startOfMonth(new Date()), []);
+  const today = useMemo(() => new Date(), []);
+  const monthLabel = useMemo(() => format(new Date(), 'MMMM'), []);
 
+  const { totalSpent, totalBudgeted, overCount } = useMemo(() => {
     const filtered = transactions.filter(t => {
       const txDate = new Date(t.date);
-      const withinRange = txDate >= startDate && txDate <= endDate;
+      const withinRange = txDate >= monthStart && txDate <= today;
       const rentFilter = includeRent || t.category !== 'Rent';
       return t.type === 'expense' && withinRange && rentFilter;
     });
@@ -70,7 +73,6 @@ const Budget = () => {
       }
     });
 
-    // Include budgeted categories with no spend
     Object.keys(budgets).forEach(cat => {
       if (!spendByCat[cat]) {
         budgeted += budgets[cat];
@@ -78,7 +80,7 @@ const Budget = () => {
     });
 
     return { totalSpent: spent, totalBudgeted: budgeted, overCount: over };
-  }, [transactions, budgets, range, includeRent, customStartDate, customEndDate]);
+  }, [transactions, budgets, includeRent, monthStart, today]);
 
   if (authLoading || transactionsLoading || categoriesLoading || budgetsLoading) {
     return (
@@ -111,7 +113,7 @@ const Budget = () => {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mb-6 mt-3">
             <span>
               <span className="font-semibold text-foreground">${totalSpent.toLocaleString()}</span> spent of{' '}
-              <span className="font-semibold text-foreground">${totalBudgeted.toLocaleString()}</span> budgeted
+              <span className="font-semibold text-foreground">${totalBudgeted.toLocaleString()}</span> budgeted in {monthLabel}
             </span>
             {overCount > 0 && (
               <span className="text-accent font-medium">
