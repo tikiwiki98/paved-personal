@@ -9,8 +9,7 @@ import { useBudgets } from '@/hooks/useBudgets';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
 import { Loader2 } from 'lucide-react';
 import { CategorySpendList } from '@/components/budget/CategorySpendList';
-import { getDateRangeStart } from '@/lib/dateRangeUtils';
-import { startOfDay } from 'date-fns';
+import { getDateRange } from '@/lib/dateRangeUtils';
 
 const Budget = () => {
   const { user, loading: authLoading } = useAuth();
@@ -18,7 +17,7 @@ const Budget = () => {
   const { transactions, isLoading: transactionsLoading } = useTransactions();
   const { categories, isLoading: categoriesLoading, upsertBudget } = useCategories(transactions, 'monthly');
   const { budgets: budgetsArray, isLoading: budgetsLoading } = useBudgets('monthly');
-  const { initializeWithTransactions, range, includeRent } = useTimeFrame();
+  const { initializeWithTransactions, range, includeRent, customStartDate, customEndDate } = useTimeFrame();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -45,8 +44,7 @@ const Budget = () => {
 
   // Summary stats
   const { totalSpent, totalBudgeted, overCount } = useMemo(() => {
-    const startDate = getDateRangeStart(range);
-    const endDate = startOfDay(new Date());
+    const { start: startDate, end: endDate } = getDateRange(range, customStartDate, customEndDate);
 
     const filtered = transactions.filter(t => {
       const txDate = new Date(t.date);
@@ -80,7 +78,7 @@ const Budget = () => {
     });
 
     return { totalSpent: spent, totalBudgeted: budgeted, overCount: over };
-  }, [transactions, budgets, range, includeRent]);
+  }, [transactions, budgets, range, includeRent, customStartDate, customEndDate]);
 
   if (authLoading || transactionsLoading || categoriesLoading || budgetsLoading) {
     return (

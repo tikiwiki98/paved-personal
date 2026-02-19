@@ -41,7 +41,7 @@ function SimpleTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartProps) {
-  const { range, setRange, filterRent } = useTimeFrame();
+  const { range, setRange, filterRent, customStartDate, customEndDate } = useTimeFrame();
   const [drilldownOpen, setDrilldownOpen] = useState(false);
   const [drilldownTitle, setDrilldownTitle] = useState('');
   const [drilldownTransactions, setDrilldownTransactions] = useState<Transaction[]>([]);
@@ -49,7 +49,7 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
   const rentFilteredTransactions = useMemo(() => filterRent(transactions), [transactions, filterRent]);
 
   const data = useMemo(() => {
-    const filteredTransactions = filterTransactionsByRange(rentFilteredTransactions, range);
+    const filteredTransactions = filterTransactionsByRange(rentFilteredTransactions, range, customStartDate, customEndDate);
     if (filteredTransactions.length === 0) return [] as DataPoint[];
 
     const expenses = filteredTransactions.filter((t) => t.type === 'expense');
@@ -106,7 +106,7 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
         grouping: mode,
       } as DataPoint;
     });
-  }, [rentFilteredTransactions, range]);
+  }, [rentFilteredTransactions, range, customStartDate, customEndDate]);
 
   const handleChartClick = useCallback((chartData: any) => {
     if (!chartData?.activePayload?.[0]) return;
@@ -138,9 +138,11 @@ export function SpendingOverTimeChart({ transactions }: SpendingOverTimeChartPro
     setDrilldownOpen(true);
   }, [rentFilteredTransactions]);
 
-  const rangeLabel = range === 'mtd' ? format(new Date(), 'MMMM') :
-                     range === 'ytd' ? format(new Date(), 'yyyy') :
-                     range.toUpperCase();
+  const rangeLabel = range === 'custom' && customStartDate && customEndDate
+    ? `${format(parseISO(customStartDate), 'MMM d')} – ${format(parseISO(customEndDate), 'MMM d')}`
+    : range === 'mtd' ? format(new Date(), 'MMMM') :
+      range === 'ytd' ? format(new Date(), 'yyyy') :
+      range.toUpperCase();
 
   if (data.length === 0) {
     return (

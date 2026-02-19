@@ -14,7 +14,7 @@ import { IncludeRentToggle } from '@/components/IncludeRentToggle';
 import { SpendInsights } from '@/components/SpendInsights';
 import { filterTransactionsByRange } from '@/lib/dateRangeUtils';
 import { Loader2, TrendingUp } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 const Trends = () => {
   const { user, loading: authLoading } = useAuth();
@@ -22,7 +22,7 @@ const Trends = () => {
   const { transactions, isLoading: transactionsLoading } = useTransactions();
   const { categories, isLoading: categoriesLoading } = useCategories(transactions);
   const { creditCards, isLoading: cardsLoading } = useCreditCards();
-  const { range, setRange, filterRent } = useTimeFrame();
+  const { range, setRange, filterRent, customStartDate, customEndDate } = useTimeFrame();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -31,9 +31,9 @@ const Trends = () => {
   }, [user, authLoading, navigate]);
 
   const filteredTransactions = useMemo(() => {
-    const rangeFiltered = filterTransactionsByRange(transactions, range);
+    const rangeFiltered = filterTransactionsByRange(transactions, range, customStartDate, customEndDate);
     return filterRent(rangeFiltered);
-  }, [transactions, range, filterRent]);
+  }, [transactions, range, filterRent, customStartDate, customEndDate]);
 
   const totalExpenses = useMemo(() => {
     return filteredTransactions
@@ -41,9 +41,11 @@ const Trends = () => {
       .reduce((acc, t) => acc + t.amount, 0);
   }, [filteredTransactions]);
 
-  const rangeLabel = range === 'mtd' ? format(new Date(), 'MMMM') : 
-                     range === 'ytd' ? format(new Date(), 'yyyy') :
-                     range.toUpperCase();
+  const rangeLabel = range === 'custom' && customStartDate && customEndDate
+    ? `${format(parseISO(customStartDate), 'MMM d')} – ${format(parseISO(customEndDate), 'MMM d')}`
+    : range === 'mtd' ? format(new Date(), 'MMMM') : 
+      range === 'ytd' ? format(new Date(), 'yyyy') :
+      range.toUpperCase();
 
   if (authLoading || transactionsLoading || categoriesLoading || cardsLoading) {
     return (
