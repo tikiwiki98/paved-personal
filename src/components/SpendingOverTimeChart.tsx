@@ -16,7 +16,7 @@ interface SpendingOverTimeChartProps {
   transactions: Transaction[];
 }
 
-const EXPENSE_COLOR = 'hsl(220, 60%, 45%)';
+const EXPENSE_COLOR = 'hsl(220, 50%, 50%)';
 
 type GroupingMode = 'daily' | 'weekly' | 'monthly';
 

@@ -270,7 +270,7 @@ export function CategorySpendList({
                       value={Math.min(percentage, 100)}
                       className="h-2 mb-2"
                       style={{
-                        '--progress-color': isOverBudget ? 'hsl(32, 95%, 55%)' : 'hsl(220, 60%, 45%)',
+                        '--progress-color': isOverBudget ? 'hsl(40, 65%, 55%)' : 'hsl(220, 50%, 50%)',
                       } as React.CSSProperties}
                     />
                     <div className="flex justify-between text-xs text-muted-foreground">

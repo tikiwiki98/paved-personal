@@ -16,7 +16,7 @@
     --popover-foreground: 210 20% 96%;
 
     /* Yellow/orange primary - action-oriented, warm trust */
-    --primary: 38 92% 50%;
+    --primary: 40 65% 55%;
     --primary-foreground: 220 30% 8%;
 
     /* Subtle secondary for less emphasis */
@@ -27,8 +27,8 @@
     --muted: 220 20% 18%;
     --muted-foreground: 215 15% 55%;
 
-    /* Accent for highlights and toggles - warm orange */
-    --accent: 32 95% 55%;
+    /* Accent merged with primary for consistency */
+    --accent: 40 65% 55%;
     --accent-foreground: 220 30% 8%;
 
     /* Clear destructive for critical actions */
@@ -46,29 +46,29 @@
     /* Borders and inputs - subtle definition */
     --border: 220 20% 18%;
     --input: 220 22% 16%;
-    --ring: 38 92% 50%;
+    --ring: 40 65% 55%;
 
     --radius: 0.75rem;
 
     /* Finance-specific tokens - blue-based palette */
-    --income: 200 75% 55%;
-    --expense: 220 60% 45%;
+    --income: 160 55% 50%;
+    --expense: 220 50% 50%;
     
     /* Refined gradients and shadows */
     --gradient-card: linear-gradient(135deg, hsl(220 28% 14%), hsl(220 28% 10%));
-    --gradient-primary: linear-gradient(135deg, hsl(38 92% 50%), hsl(32 90% 45%));
-    --shadow-glow: 0 0 40px hsl(38 92% 50% / 0.15);
-    --shadow-card: 0 4px 24px hsl(220 30% 4% / 0.5);
+    --gradient-primary: linear-gradient(135deg, hsl(40 65% 55%), hsl(38 60% 48%));
+    --shadow-glow: 0 0 40px hsl(40 65% 55% / 0.12);
+    --shadow-card: 0 4px 24px hsl(220 30% 4% / 0.4);
 
     /* Sidebar - consistent with main theme */
     --sidebar-background: 220 30% 6%;
     --sidebar-foreground: 210 20% 96%;
-    --sidebar-primary: 38 92% 50%;
+    --sidebar-primary: 40 65% 55%;
     --sidebar-primary-foreground: 220 30% 8%;
     --sidebar-accent: 220 25% 14%;
     --sidebar-accent-foreground: 210 20% 90%;
     --sidebar-border: 220 20% 15%;
-    --sidebar-ring: 38 92% 50%;
+    --sidebar-ring: 40 65% 55%;
 
     /* Chart colors - blue-based palette */
     --chart-1: 200 75% 55%;
@@ -85,19 +85,19 @@
     --card-foreground: 210 20% 96%;
     --popover: 220 28% 14%;
     --popover-foreground: 210 20% 96%;
-    --primary: 38 92% 50%;
+    --primary: 40 65% 55%;
     --primary-foreground: 220 30% 8%;
     --secondary: 220 25% 16%;
     --secondary-foreground: 210 20% 90%;
     --muted: 220 20% 18%;
     --muted-foreground: 215 15% 55%;
-    --accent: 32 95% 55%;
+    --accent: 40 65% 55%;
     --accent-foreground: 220 30% 8%;
     --destructive: 0 65% 55%;
     --destructive-foreground: 210 20% 96%;
     --border: 220 20% 18%;
     --input: 220 22% 16%;
-    --ring: 38 92% 50%;
+    --ring: 40 65% 55%;
   }
 }
 

@@ -20,7 +20,7 @@ interface PaymentTypeChartProps {
   transactions: Transaction[];
 }
 
-const EXPENSE_COLOR = 'hsl(220, 60%, 45%)';
+const EXPENSE_COLOR = 'hsl(220, 50%, 50%)';
 
 const PAYMENT_LABELS: Record<string, string> = {
   credit_card: 'Credit Card',
