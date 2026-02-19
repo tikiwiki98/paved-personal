@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recha
 import { Card } from '@/components/ui/card';
 import { Transaction } from '@/types/budget';
 import { ChartDrilldownSheet } from './ChartDrilldownSheet';
+import { useRangeLabel } from '@/hooks/useRangeLabel';
 
 // Display-only tooltip
 function SimpleBarTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) {
@@ -42,6 +43,7 @@ const REVERSE_LABELS: Record<string, string> = Object.entries(PAYMENT_LABELS).re
 export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
   const [drilldownOpen, setDrilldownOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const rangeLabel = useRangeLabel();
 
   const data = useMemo(() => {
     const expensesByPaymentType = transactions
@@ -79,7 +81,10 @@ export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
   if (data.length === 0) {
     return (
       <Card className="bg-card border-border p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Spending by Payment Type</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-foreground">Spending by Payment Type</h3>
+          <span className="text-sm text-muted-foreground">{rangeLabel}</span>
+        </div>
         <div className="h-64 flex items-center justify-center text-muted-foreground">
           No payment type data available
         </div>
@@ -90,7 +95,10 @@ export function PaymentTypeChart({ transactions }: PaymentTypeChartProps) {
   return (
     <>
       <Card className="bg-card border-border p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Spending by Payment Type</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-foreground">Spending by Payment Type</h3>
+          <span className="text-sm text-muted-foreground">{rangeLabel}</span>
+        </div>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 10, right: 20, left: 20, bottom: 30 }} onClick={handleChartClick}>

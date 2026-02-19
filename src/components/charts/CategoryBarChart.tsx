@@ -9,6 +9,7 @@ import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, Command
 import { Switch } from '@/components/ui/switch';
 import { Filter, Check, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useRangeLabel } from '@/hooks/useRangeLabel';
 
 interface CategoryBarChartProps {
   transactions: Transaction[];
@@ -35,6 +36,7 @@ export function CategoryBarChart({ transactions, categories }: CategoryBarChartP
   const [pinnedCategories, setPinnedCategories] = useState<Set<string>>(new Set());
   const [showOnlySelected, setShowOnlySelected] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const rangeLabel = useRangeLabel();
 
   const allCategoryData = useMemo(() => {
     const expensesByCategory = transactions
@@ -129,6 +131,7 @@ export function CategoryBarChart({ transactions, categories }: CategoryBarChartP
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
+            <span className="text-sm text-muted-foreground hidden sm:inline">{rangeLabel}</span>
             {hasSelections && (
               <Button
                 variant="ghost"
