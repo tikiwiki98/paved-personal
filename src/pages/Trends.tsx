@@ -82,7 +82,7 @@ const Trends = () => {
 
         {/* AI Insights */}
         <div className="mb-8">
-          <SpendInsights transactions={filteredTransactions} />
+          <SpendInsights transactions={transactions} />
         </div>
 
         {/* Spending Over Time */}
