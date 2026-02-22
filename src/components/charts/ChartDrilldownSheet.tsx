@@ -8,7 +8,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Transaction, Category } from '@/types/budget';
 import { EditTransactionModal } from '@/components/EditTransactionModal';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -132,8 +132,8 @@ export function ChartDrilldownSheet({
           </p>
 
           {/* Transaction List */}
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="space-y-2 pr-4 pb-[env(safe-area-inset-bottom,24px)]">
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="space-y-2 pb-[env(safe-area-inset-bottom,24px)]">
               {filteredTransactions.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
                   No transactions found
@@ -185,7 +185,7 @@ export function ChartDrilldownSheet({
                 ))
               )}
             </div>
-          </ScrollArea>
+          </div>
         </SheetContent>
       </Sheet>
 
