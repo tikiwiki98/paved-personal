@@ -133,7 +133,7 @@ export function ChartDrilldownSheet({
 
           {/* Transaction List */}
           <ScrollArea className="h-[calc(85vh-200px)]">
-            <div className="space-y-2 pr-4">
+            <div className="space-y-2 pr-4 pb-[env(safe-area-inset-bottom,24px)]">
               {filteredTransactions.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
                   No transactions found
