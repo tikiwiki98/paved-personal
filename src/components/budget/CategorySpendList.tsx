@@ -193,9 +193,14 @@ export function CategorySpendList({
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">$</span>
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
+                        pattern="[0-9]*\.?[0-9]*"
                         value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
+                        onChange={(e) => {
+                          const sanitized = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                          setEditValue(sanitized);
+                        }}
                         className="w-24 h-8 text-right"
                         placeholder="0"
                         autoFocus

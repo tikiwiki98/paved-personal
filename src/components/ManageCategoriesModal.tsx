@@ -150,9 +150,14 @@ export function ManageCategoriesModal({
                       <div className="relative flex-1">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
+                          pattern="[0-9]*\.?[0-9]*"
                           value={editBudget}
-                          onChange={(e) => setEditBudget(e.target.value)}
+                          onChange={(e) => {
+                            const sanitized = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                            setEditBudget(sanitized);
+                          }}
                           className="pl-7 bg-background border-border"
                         />
                       </div>
@@ -264,9 +269,14 @@ export function ManageCategoriesModal({
                   <div className="relative flex-1">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*\.?[0-9]*"
                       value={newBudget}
-                      onChange={(e) => setNewBudget(e.target.value)}
+                      onChange={(e) => {
+                        const sanitized = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                        setNewBudget(sanitized);
+                      }}
                       className="pl-7 bg-background border-border"
                       placeholder="Monthly budget"
                     />
