@@ -308,12 +308,15 @@ export function EditTransactionModal({
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-lg">$</span>
                 <Input
                   id="edit-amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*\.?[0-9]*"
                   placeholder="0.00"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    const sanitized = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                    setAmount(sanitized);
+                  }}
                   className="pl-8 text-lg bg-secondary border-border"
                 />
               </div>
