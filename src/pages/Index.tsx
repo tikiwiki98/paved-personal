@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BalanceCard } from '@/components/BalanceCard';
+import { MonthlySpendingChart } from '@/components/MonthlySpendingChart';
 import { TransactionList } from '@/components/TransactionList';
 import { AddTransactionModal } from '@/components/AddTransactionModal';
 import { AppLayout } from '@/components/AppLayout';
@@ -69,7 +70,8 @@ const Index = () => {
           {/* Left Column - Balance & Transactions */}
           <div className="lg:col-span-2 space-y-8">
             <BalanceCard transactions={transactions} />
-            <TransactionList 
+            <MonthlySpendingChart transactions={transactions} />
+            <TransactionList
               transactions={transactions} 
               categories={categories}
               onUpdateTransaction={updateTransaction}
