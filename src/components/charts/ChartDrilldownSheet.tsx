@@ -91,8 +91,8 @@ export function ChartDrilldownSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
-          <SheetHeader className="pb-4">
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl flex flex-col">
+          <SheetHeader className="pb-4 flex-none">
             <SheetTitle className="flex items-center justify-between">
               <span>{title}</span>
               <span className="text-sm font-normal text-muted-foreground">
@@ -102,7 +102,7 @@ export function ChartDrilldownSheet({
           </SheetHeader>
 
           {/* Search */}
-          <div className="relative mb-4">
+          <div className="relative mb-4 flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search transactions..."
@@ -121,18 +121,18 @@ export function ChartDrilldownSheet({
           </div>
 
           {/* Results count */}
-          <p className="text-xs text-muted-foreground mb-3">
+          <p className="text-xs text-muted-foreground mb-3 flex-none">
             {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}
             {search && ` matching "${search}"`}
           </p>
 
           {/* Inline note about trend updates */}
-          <p className="text-xs text-muted-foreground/70 mb-3 italic">
+          <p className="text-xs text-muted-foreground/70 mb-3 italic flex-none">
             Editing a transaction will update your trends.
           </p>
 
           {/* Transaction List */}
-          <ScrollArea className="h-[calc(85vh-200px)]">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="space-y-2 pr-4 pb-[env(safe-area-inset-bottom,24px)]">
               {filteredTransactions.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">

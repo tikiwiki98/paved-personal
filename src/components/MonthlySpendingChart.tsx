@@ -141,7 +141,7 @@ export function MonthlySpendingChart({ transactions }: MonthlySpendingChartProps
                 tickCount={4}
                 allowDecimals={false}
               />
-              <Tooltip cursor={{ fill: 'hsl(220, 20%, 20% / 0.15)' }} content={<MonthTooltip />} />
+              <Tooltip cursor={false} content={<MonthTooltip />} />
               <Bar dataKey="amount" radius={[4, 4, 0, 0]} cursor="pointer">
                 {data.map((entry, index) => (
                   <Cell
