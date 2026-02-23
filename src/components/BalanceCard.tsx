@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Wallet, TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Transaction } from '@/types/budget';
 import { SummaryRangeSelector } from '@/components/SummaryRangeSelector';
@@ -30,7 +30,7 @@ export function BalanceCard({ transactions }: BalanceCardProps) {
       .reduce((acc, t) => acc + t.amount, 0);
     // Balance = income - expenses - transfers (transfers reduce available cash)
     const balance = income - expenses - transfers;
-    const rate = income > 0 ? ((income - expenses - transfers) / income * 100).toFixed(1) : '0';
+    const rate = income > 0 ? ((income - expenses) / income * 100).toFixed(1) : '0';
 
     return {
       totalBalance: balance,
@@ -49,7 +49,7 @@ export function BalanceCard({ transactions }: BalanceCardProps) {
             <Wallet className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Total Balance</p>
+            <p className="text-sm text-muted-foreground">Cash Remaining</p>
             <h2 className="text-3xl font-bold text-foreground">
               ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </h2>
@@ -61,7 +61,7 @@ export function BalanceCard({ transactions }: BalanceCardProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <div className="bg-income/10 rounded-xl p-4 border border-income/20">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-lg bg-income/20 flex items-center justify-center">
@@ -83,6 +83,18 @@ export function BalanceCard({ transactions }: BalanceCardProps) {
           </div>
           <p className="text-xl font-bold text-expense">
             -${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+
+        <div className="col-span-2 sm:col-span-1 bg-primary/10 rounded-xl p-4 border border-primary/20">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-primary" />
+            </div>
+            <span className="text-sm text-muted-foreground">Invested</span>
+          </div>
+          <p className="text-xl font-bold text-primary">
+            →${totalTransfers.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
         </div>
       </div>
