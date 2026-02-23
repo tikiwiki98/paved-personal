@@ -107,7 +107,7 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
       amount: parseFloat(amount),
       type,
       category: type === 'transfer' ? 'Transfer' : category,
-      description: type === 'transfer' ? (assetName || 'Transfer/Investment') : description,
+      description: type === 'transfer' ? (description.trim() || assetName || 'Transfer/Investment') : description,
       date,
     };
 
@@ -413,6 +413,18 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                   className="bg-secondary border-border"
                 />
               </div>
+
+              {/* Description Input for Transfers (optional) */}
+              <div className="space-y-2">
+                <Label htmlFor="transfer-description" className="text-foreground">Description</Label>
+                <Input
+                  id="transfer-description"
+                  placeholder="e.g., Monthly contribution, 401k match"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="bg-secondary border-border"
+                />
+              </div>
             </>
           )}
 
@@ -611,242 +623,244 @@ export function AddTransactionModal({ onAddTransaction, categories, transactions
                   className="bg-secondary border-border"
                 />
               </div>
-
-              {/* Recurring Toggle */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Repeat className="w-4 h-4 text-muted-foreground" />
-                    <Label htmlFor="recurring" className="text-foreground cursor-pointer">Recurring?</Label>
-                  </div>
-                  <Switch
-                    id="recurring"
-                    checked={isRecurring}
-                    onCheckedChange={setIsRecurring}
-                  />
-                </div>
-
-                {/* Recurring Options */}
-                {isRecurring && (
-                  <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="space-y-2">
-                      <Label className="text-foreground">Frequency</Label>
-                      <Select value={recurringFrequency} onValueChange={setRecurringFrequency}>
-                        <SelectTrigger className="bg-secondary border-border">
-                          <SelectValue placeholder="Select frequency" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-card border-border">
-                          <SelectItem value="daily">Daily</SelectItem>
-                          <SelectItem value="weekly">Weekly</SelectItem>
-                          <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                          <SelectItem value="yearly">Yearly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-foreground">Start Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal bg-secondary border-border",
-                              !recurringStartDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {recurringStartDate ? format(recurringStartDate, "PPP") : "Select start date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={recurringStartDate}
-                            onSelect={setRecurringStartDate}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-foreground">End Date (Optional)</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal bg-secondary border-border",
-                              !recurringEndDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {recurringEndDate ? format(recurringEndDate, "PPP") : "No end date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={recurringEndDate}
-                            onSelect={setRecurringEndDate}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Payment Type Toggle */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="w-4 h-4 text-muted-foreground" />
-                    <Label htmlFor="payment-type" className="text-foreground cursor-pointer">Add payment type?</Label>
-                  </div>
-                  <Switch
-                    id="payment-type"
-                    checked={showPaymentType}
-                    onCheckedChange={setShowPaymentType}
-                  />
-                </div>
-
-                {showPaymentType && (
-                  <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border animate-in fade-in slide-in-from-top-2 duration-200">
-                    {/* Recent Payment Types */}
-                    {recentPaymentTypes.length > 0 && !paymentType && (
-                      <div className="space-y-2">
-                        <Label className="text-foreground text-xs uppercase tracking-wide">Recent</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {recentPaymentTypes.map((recent, index) => (
-                            <Button
-                              key={index}
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="bg-secondary border-border"
-                              onClick={() => {
-                                setPaymentType(recent.paymentType);
-                                if (recent.creditCardId) {
-                                  setSelectedCreditCardId(recent.creditCardId);
-                                }
-                                if (recent.paymentDescription) {
-                                  setPaymentDescription(recent.paymentDescription);
-                                }
-                              }}
-                            >
-                              {recent.label}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label className="text-foreground">Payment Method</Label>
-                      <Select value={paymentType} onValueChange={(value) => {
-                        setPaymentType(value);
-                        if (value !== 'credit_card') {
-                          setSelectedCreditCardId('');
-                          setIsAddingNewCard(false);
-                          setNewCardName('');
-                        }
-                      }}>
-                        <SelectTrigger className="bg-secondary border-border">
-                          <SelectValue placeholder="Select payment method" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-card border-border">
-                          <SelectItem value="credit_card">Credit Card</SelectItem>
-                          <SelectItem value="debit_card">Debit Card</SelectItem>
-                          <SelectItem value="cash">Cash</SelectItem>
-                          <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                          <SelectItem value="venmo">Venmo</SelectItem>
-                          <SelectItem value="paypal">PayPal</SelectItem>
-                          <SelectItem value="zelle">Zelle</SelectItem>
-                          <SelectItem value="crypto">Crypto</SelectItem>
-                          <SelectItem value="check">Check</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {paymentType === 'credit_card' && (
-                      <div className="space-y-3">
-                        {/* Existing Cards */}
-                        {creditCards.length > 0 && !isAddingNewCard && (
-                          <div className="space-y-2">
-                            <Label className="text-foreground">Select Card</Label>
-                            <Select value={selectedCreditCardId} onValueChange={setSelectedCreditCardId}>
-                              <SelectTrigger className="bg-secondary border-border">
-                                <SelectValue placeholder="Select a card" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-card border-border">
-                                {creditCards.map((card) => (
-                                  <SelectItem key={card.id} value={card.id}>
-                                    {card.card_name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-
-                        {/* Toggle to add new card */}
-                        {!isAddingNewCard ? (
-                          <button
-                            type="button"
-                            onClick={() => setIsAddingNewCard(true)}
-                            className="text-sm text-primary hover:text-primary/80 transition-colors"
-                          >
-                            + Add new card
-                          </button>
-                        ) : (
-                          <CardIdentifier
-                            cardName={newCardName}
-                            onCardNameChange={setNewCardName}
-                            onCardIdentified={(cardId) => {
-                              setSelectedCreditCardId(cardId);
-                              setIsAddingNewCard(false);
-                            }}
-                            addCreditCard={addCreditCard}
-                            updateCreditCard={updateCreditCard}
-                            lookupCardBenefits={lookupCardBenefits}
-                          />
-                        )}
-
-                        {isAddingNewCard && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsAddingNewCard(false);
-                              setNewCardName('');
-                            }}
-                            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label className="text-foreground">Payment Note (Optional)</Label>
-                      <Input
-                        placeholder="e.g., Split with roommate"
-                        value={paymentDescription}
-                        onChange={(e) => setPaymentDescription(e.target.value)}
-                        className="bg-secondary border-border"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
             </>
+          )}
+
+          {/* Recurring Toggle - visible for ALL transaction types */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Repeat className="w-4 h-4 text-muted-foreground" />
+                <Label htmlFor="recurring" className="text-foreground cursor-pointer">Recurring?</Label>
+              </div>
+              <Switch
+                id="recurring"
+                checked={isRecurring}
+                onCheckedChange={setIsRecurring}
+              />
+            </div>
+
+            {/* Recurring Options */}
+            {isRecurring && (
+              <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="space-y-2">
+                  <Label className="text-foreground">Frequency</Label>
+                  <Select value={recurringFrequency} onValueChange={setRecurringFrequency}>
+                    <SelectTrigger className="bg-secondary border-border">
+                      <SelectValue placeholder="Select frequency" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border">
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="yearly">Yearly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-foreground">Start Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-secondary border-border",
+                          !recurringStartDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {recurringStartDate ? format(recurringStartDate, "PPP") : "Select start date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={recurringStartDate}
+                        onSelect={setRecurringStartDate}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-foreground">End Date (Optional)</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-secondary border-border",
+                          !recurringEndDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {recurringEndDate ? format(recurringEndDate, "PPP") : "No end date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={recurringEndDate}
+                        onSelect={setRecurringEndDate}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Payment Type Toggle - only for non-transfer */}
+          {type !== 'transfer' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="payment-type" className="text-foreground cursor-pointer">Add payment type?</Label>
+                </div>
+                <Switch
+                  id="payment-type"
+                  checked={showPaymentType}
+                  onCheckedChange={setShowPaymentType}
+                />
+              </div>
+
+              {showPaymentType && (
+                <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border animate-in fade-in slide-in-from-top-2 duration-200">
+                  {/* Recent Payment Types */}
+                  {recentPaymentTypes.length > 0 && !paymentType && (
+                    <div className="space-y-2">
+                      <Label className="text-foreground text-xs uppercase tracking-wide">Recent</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {recentPaymentTypes.map((recent, index) => (
+                          <Button
+                            key={index}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="bg-secondary border-border"
+                            onClick={() => {
+                              setPaymentType(recent.paymentType);
+                              if (recent.creditCardId) {
+                                setSelectedCreditCardId(recent.creditCardId);
+                              }
+                              if (recent.paymentDescription) {
+                                setPaymentDescription(recent.paymentDescription);
+                              }
+                            }}
+                          >
+                            {recent.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Payment Method</Label>
+                    <Select value={paymentType} onValueChange={(value) => {
+                      setPaymentType(value);
+                      if (value !== 'credit_card') {
+                        setSelectedCreditCardId('');
+                        setIsAddingNewCard(false);
+                        setNewCardName('');
+                      }
+                    }}>
+                      <SelectTrigger className="bg-secondary border-border">
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border">
+                        <SelectItem value="credit_card">Credit Card</SelectItem>
+                        <SelectItem value="debit_card">Debit Card</SelectItem>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="venmo">Venmo</SelectItem>
+                        <SelectItem value="paypal">PayPal</SelectItem>
+                        <SelectItem value="zelle">Zelle</SelectItem>
+                        <SelectItem value="crypto">Crypto</SelectItem>
+                        <SelectItem value="check">Check</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {paymentType === 'credit_card' && (
+                    <div className="space-y-3">
+                      {/* Existing Cards */}
+                      {creditCards.length > 0 && !isAddingNewCard && (
+                        <div className="space-y-2">
+                          <Label className="text-foreground">Select Card</Label>
+                          <Select value={selectedCreditCardId} onValueChange={setSelectedCreditCardId}>
+                            <SelectTrigger className="bg-secondary border-border">
+                              <SelectValue placeholder="Select a card" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card border-border">
+                              {creditCards.map((card) => (
+                                <SelectItem key={card.id} value={card.id}>
+                                  {card.card_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      {/* Toggle to add new card */}
+                      {!isAddingNewCard ? (
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingNewCard(true)}
+                          className="text-sm text-primary hover:text-primary/80 transition-colors"
+                        >
+                          + Add new card
+                        </button>
+                      ) : (
+                        <CardIdentifier
+                          cardName={newCardName}
+                          onCardNameChange={setNewCardName}
+                          onCardIdentified={(cardId) => {
+                            setSelectedCreditCardId(cardId);
+                            setIsAddingNewCard(false);
+                          }}
+                          addCreditCard={addCreditCard}
+                          updateCreditCard={updateCreditCard}
+                          lookupCardBenefits={lookupCardBenefits}
+                        />
+                      )}
+
+                      {isAddingNewCard && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingNewCard(false);
+                            setNewCardName('');
+                          }}
+                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Payment Note (Optional)</Label>
+                    <Input
+                      placeholder="e.g., Split with roommate"
+                      value={paymentDescription}
+                      onChange={(e) => setPaymentDescription(e.target.value)}
+                      className="bg-secondary border-border"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Validation Error */}

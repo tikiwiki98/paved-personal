@@ -6,6 +6,14 @@ import { format, parseISO } from 'date-fns';
 import { EditTransactionModal } from './EditTransactionModal';
 import { useNavigate } from 'react-router-dom';
 
+const ASSET_TYPE_LABELS: Record<string, string> = {
+  brokerage: 'Brokerage',
+  retirement: 'Retirement',
+  high_yield_savings: 'High-yield Savings',
+  crypto: 'Crypto',
+  other: 'Other',
+};
+
 interface TransactionListProps {
   transactions: Transaction[];
   categories: Category[];
@@ -109,7 +117,7 @@ export function TransactionList({
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {transaction.type === 'transfer' && transaction.asset_type 
-                        ? `Transfer · ${transaction.asset_type.replace('_', ' ')}`
+                        ? `Transfer · ${ASSET_TYPE_LABELS[transaction.asset_type] || transaction.asset_type}`
                         : transaction.category
                       }
                     </p>

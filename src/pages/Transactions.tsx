@@ -17,6 +17,14 @@ import { useCategories } from '@/hooks/useCategories';
 import { useCreditCards } from '@/hooks/useCreditCards';
 import { cn } from '@/lib/utils';
 
+const ASSET_TYPE_LABELS: Record<string, string> = {
+  brokerage: 'Brokerage',
+  retirement: 'Retirement',
+  high_yield_savings: 'High-yield Savings',
+  crypto: 'Crypto',
+  other: 'Other',
+};
+
 const PAYMENT_LABELS: Record<string, string> = {
   credit_card: 'Credit Card',
   debit_card: 'Debit Card',
@@ -368,7 +376,7 @@ const Transactions = () => {
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {transaction.type === 'transfer' && transaction.asset_type 
-                            ? `Transfer · ${transaction.asset_type.replace('_', ' ')}`
+                            ? `Transfer · ${ASSET_TYPE_LABELS[transaction.asset_type] || transaction.asset_type}`
                             : transaction.category
                           }
                         </p>
