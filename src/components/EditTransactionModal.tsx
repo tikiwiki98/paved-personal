@@ -24,6 +24,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO } from 'date-fns';
 import { useCreditCards } from '@/hooks/useCreditCards';
 import { CardIdentifier } from '@/components/CardIdentifier';
+import { getBaseTransactionId, isRecurringInstanceId } from '@/lib/recurringTransactions';
 
 interface EditTransactionModalProps {
   transaction: Transaction | null;
@@ -173,13 +174,17 @@ export function EditTransactionModal({
       }
     }
 
+    const baseId = getBaseTransactionId(transaction.id);
+    const isSyntheticInstance = isRecurringInstanceId(transaction.id);
+
     const updateData: Partial<Transaction> & { id: string } = {
-      id: transaction.id,
+      id: baseId,
       amount: parseFloat(amount),
       type,
       category: type === 'transfer' ? 'Transfer' : category,
       description: type === 'transfer' ? (description.trim() || assetName || 'Transfer/Investment') : description,
-      date,
+      // Don't send instance-specific date for recurring instances — date is generated from schedule
+      ...(isSyntheticInstance ? {} : { date }),
       is_recurring: isRecurring,
     };
 
@@ -219,11 +224,13 @@ export function EditTransactionModal({
 
   const handleDelete = () => {
     if (transaction) {
-      onDeleteTransaction(transaction.id);
+      onDeleteTransaction(getBaseTransactionId(transaction.id));
       setShowDeleteConfirm(false);
       onOpenChange(false);
     }
   };
+
+  const isInstance = transaction ? isRecurringInstanceId(transaction.id) : false;
 
   // Merge predefined categories with custom categories from past transactions
   const categoryOptions = (() => {
@@ -722,9 +729,11 @@ export function EditTransactionModal({
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
+            <AlertDialogTitle>Delete {isInstance || transaction?.is_recurring ? 'Recurring ' : ''}Transaction</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this transaction? This action cannot be undone.
+              {isInstance || transaction?.is_recurring
+                ? 'This will delete this recurring transaction and all its instances. This action cannot be undone.'
+                : 'Are you sure you want to delete this transaction? This action cannot be undone.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Transaction } from '@/types/budget';
 import { useToast } from '@/hooks/use-toast';
-import { expandAllRecurringTransactions } from '@/lib/recurringTransactions';
+import { expandAllRecurringTransactions, getBaseTransactionId } from '@/lib/recurringTransactions';
 
 export function useTransactions() {
   const { user } = useAuth();
@@ -95,10 +95,12 @@ export function useTransactions() {
     mutationFn: async ({ id, ...updates }: Partial<Transaction> & { id: string }) => {
       if (!user) throw new Error('User not authenticated');
       
+      const baseId = getBaseTransactionId(id);
+      
       const { data, error } = await supabase
         .from('transactions')
         .update(updates)
-        .eq('id', id)
+        .eq('id', baseId)
         .eq('user_id', user.id)
         .select()
         .single();
@@ -124,10 +126,11 @@ export function useTransactions() {
 
   const deleteTransaction = useMutation({
     mutationFn: async (id: string) => {
+      const baseId = getBaseTransactionId(id);
       const { error } = await supabase
         .from('transactions')
         .delete()
-        .eq('id', id);
+        .eq('id', baseId);
       
       if (error) throw error;
     },

@@ -2,6 +2,26 @@ import { addDays, addWeeks, addMonths, addYears, format, parseISO, isBefore, isA
 import { Transaction } from '@/types/budget';
 
 /**
+ * Extracts the base transaction UUID from a potentially synthetic recurring instance ID.
+ * If the ID contains '_recurring_', strips the suffix and returns only the base UUID.
+ * Otherwise returns the ID as-is.
+ */
+export function getBaseTransactionId(id: string): string {
+  const recurringIndex = id.indexOf('_recurring_');
+  if (recurringIndex !== -1) {
+    return id.substring(0, recurringIndex);
+  }
+  return id;
+}
+
+/**
+ * Returns true if the given ID is a synthetic recurring instance ID.
+ */
+export function isRecurringInstanceId(id: string): boolean {
+  return id.includes('_recurring_');
+}
+
+/**
  * Generates all recurring transaction instances from a base recurring transaction
  * up to today's date (or the recurring end date if specified).
  */
