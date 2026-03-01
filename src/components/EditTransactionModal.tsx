@@ -183,8 +183,7 @@ export function EditTransactionModal({
       type,
       category: type === 'transfer' ? 'Transfer' : category,
       description: type === 'transfer' ? (description.trim() || assetName || 'Transfer/Investment') : description,
-      // Don't send instance-specific date for recurring instances — date is generated from schedule
-      ...(isSyntheticInstance ? {} : { date }),
+      date,
       is_recurring: isRecurring,
     };
 
@@ -192,6 +191,10 @@ export function EditTransactionModal({
       updateData.recurring_frequency = recurringFrequency;
       updateData.recurring_start_date = format(recurringStartDate, 'yyyy-MM-dd');
       updateData.recurring_end_date = recurringEndDate ? format(recurringEndDate, 'yyyy-MM-dd') : null;
+      // If the user changed the date, also sync recurring_start_date so the schedule shifts
+      if (date !== transaction.date) {
+        updateData.recurring_start_date = date;
+      }
     } else {
       updateData.recurring_frequency = undefined;
       updateData.recurring_start_date = undefined;
