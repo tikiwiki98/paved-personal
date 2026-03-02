@@ -45,6 +45,12 @@ export function expandRecurringTransaction(
     ? endDate 
     : startOfDay(upToDate);
 
+  // If the start date is in the future, return the base transaction as-is
+  // so it remains visible in the transaction list for editing/deleting
+  if (isAfter(startDate, effectiveEndDate)) {
+    return [baseTransaction];
+  }
+
   let currentDate = startDate;
   let instanceIndex = 0;
 
