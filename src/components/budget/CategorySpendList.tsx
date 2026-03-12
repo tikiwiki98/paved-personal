@@ -4,16 +4,36 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Category, Transaction } from '@/types/budget';
-import { Pencil, Check, X, Plus, Lightbulb } from 'lucide-react';
+import { Pencil, Check, X, Plus, Lightbulb, Trash2, ArrowUpDown, Eye, EyeOff } from 'lucide-react';
 import { useTimeFrame } from '@/contexts/TimeFrameContext';
 import { startOfMonth, subMonths, endOfMonth, isWithinInterval } from 'date-fns';
 import { ChartDrilldownSheet } from '@/components/charts/ChartDrilldownSheet';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+type SortOption = 'name' | 'budget-desc' | 'spent-desc' | 'percent-desc';
 
 interface CategorySpendListProps {
   categories: Category[];
   transactions: Transaction[];
   budgets: Record<string, number>;
   onUpdateBudget: (params: { category: string; amount: number }) => void;
+  onDeleteBudget?: (category: string) => void;
   monthStart: Date;
   monthEnd: Date;
 }
@@ -23,12 +43,16 @@ export function CategorySpendList({
   transactions, 
   budgets, 
   onUpdateBudget,
+  onDeleteBudget,
   monthStart,
   monthEnd,
 }: CategorySpendListProps) {
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [drilldownCategory, setDrilldownCategory] = useState<string | null>(null);
+  const [deleteCategory, setDeleteCategory] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>('spent-desc');
+  const [hideNoBudget, setHideNoBudget] = useState(false);
   const { includeRent } = useTimeFrame();
 
   // Calculate actual spend by category from transactions using the provided month window
@@ -51,37 +75,18 @@ export function CategorySpendList({
   const suggestedBudgets = useMemo(() => {
     const now = new Date();
     const suggestions: Record<string, number | null> = {};
-
-    // Look back up to 6 months, require at least 1 full prior month
     const lookbackMonths = 6;
-    const monthlySpend: Record<string, number[]> = {};
 
-    for (let i = 1; i <= lookbackMonths; i++) {
-      const monthStart = startOfMonth(subMonths(now, i));
-      const monthEnd = endOfMonth(subMonths(now, i));
-
-      const monthTxns = transactions.filter(t => {
-        const txDate = new Date(t.date + 'T00:00:00');
-        return t.type === 'expense' && isWithinInterval(txDate, { start: monthStart, end: monthEnd });
-      });
-
-      monthTxns.forEach(t => {
-        if (!monthlySpend[t.category]) monthlySpend[t.category] = [];
-        // We need to track by month index
-      });
-    }
-
-    // Better approach: compute total per category per month, then average
     const catMonths: Record<string, Record<number, number>> = {};
 
     for (let i = 1; i <= lookbackMonths; i++) {
-      const monthStart = startOfMonth(subMonths(now, i));
-      const monthEnd = endOfMonth(subMonths(now, i));
+      const mStart = startOfMonth(subMonths(now, i));
+      const mEnd = endOfMonth(subMonths(now, i));
 
       const monthTxns = transactions.filter(t => {
         const txDate = new Date(t.date + 'T00:00:00');
         const rentFilter = includeRent || t.category !== 'Rent';
-        return t.type === 'expense' && rentFilter && isWithinInterval(txDate, { start: monthStart, end: monthEnd });
+        return t.type === 'expense' && rentFilter && isWithinInterval(txDate, { start: mStart, end: mEnd });
       });
 
       monthTxns.forEach(t => {
@@ -119,11 +124,29 @@ export function CategorySpendList({
         spent,
         budget,
         hasBudget: budget > 0,
+        percentUsed: budget > 0 ? (spent / budget) * 100 : 0,
       };
     });
 
-    return merged.sort((a, b) => b.spent - a.spent);
-  }, [categories, spendByCategory, budgets]);
+    // Apply filter
+    const filtered = hideNoBudget ? merged.filter(c => c.hasBudget) : merged;
+
+    // Apply sort
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'budget-desc':
+          return b.budget - a.budget;
+        case 'spent-desc':
+          return b.spent - a.spent;
+        case 'percent-desc':
+          return b.percentUsed - a.percentUsed;
+        default:
+          return b.spent - a.spent;
+      }
+    });
+  }, [categories, spendByCategory, budgets, sortBy, hideNoBudget]);
 
   // Transactions for the drilldown sheet
   const drilldownTransactions = useMemo(() => {
@@ -157,15 +180,51 @@ export function CategorySpendList({
     setEditValue(amount.toString());
   };
 
+  const handleConfirmDelete = () => {
+    if (deleteCategory && onDeleteBudget) {
+      onDeleteBudget(deleteCategory);
+    }
+    setDeleteCategory(null);
+  };
+
   return (
     <>
     <Card className="bg-card border-border p-6 animate-fade-in">
+      {/* Sort & Filter Controls */}
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+            <SelectTrigger className="h-8 w-[150px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="spent-desc">Highest spend</SelectItem>
+              <SelectItem value="budget-desc">Highest budget</SelectItem>
+              <SelectItem value="percent-desc">% budget used</SelectItem>
+              <SelectItem value="name">Name (A–Z)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs text-muted-foreground gap-1.5 h-8"
+          onClick={() => setHideNoBudget(prev => !prev)}
+        >
+          {hideNoBudget ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+          {hideNoBudget ? 'Show all' : 'Hide $0 budgets'}
+        </Button>
+      </div>
+
       <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
         {categoriesWithSpend.length === 0 ? (
-          <p className="text-center text-muted-foreground py-4">No spending data for this period.</p>
+          <p className="text-center text-muted-foreground py-4">
+            {hideNoBudget ? 'No budgeted categories. Toggle filter to see all.' : 'No spending data for this period.'}
+          </p>
         ) : (
           categoriesWithSpend.map((category) => {
-            const percentage = category.budget > 0 ? (category.spent / category.budget) * 100 : 0;
+            const percentage = category.percentUsed;
             const isOverBudget = category.budget > 0 && category.spent > category.budget;
             const isEditing = editingCategory === category.name;
             const suggestion = suggestedBudgets[category.name];
@@ -227,17 +286,25 @@ export function CategorySpendList({
                       </Button>
                     </div>
                   ) : category.hasBudget ? (
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       <span className="text-sm font-medium text-foreground">
-                        ${category.budget.toLocaleString()} budget
+                        ${category.budget.toLocaleString()}
                       </span>
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                        className="h-7 w-7 text-muted-foreground hover:text-primary"
                         onClick={() => handleStartEdit(category.name, category.budget)}
                       >
                         <Pencil className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => setDeleteCategory(category.name)}
+                      >
+                        <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>
                   ) : (
@@ -301,6 +368,22 @@ export function CategorySpendList({
       title={`Transactions – ${drilldownCategory || ''}`}
       transactions={drilldownTransactions}
     />
+
+    {/* Delete Confirmation Dialog */}
+    <AlertDialog open={!!deleteCategory} onOpenChange={(open) => { if (!open) setDeleteCategory(null); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove budget for {deleteCategory}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will remove the budget target for this category. Your transaction data won't be affected.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmDelete}>Remove</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </>
   );
 }
