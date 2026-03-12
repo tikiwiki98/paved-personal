@@ -12,6 +12,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Loader2, ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
 import { CategorySpendList } from '@/components/budget/CategorySpendList';
+import { UnbudgetedSpendBanner } from '@/components/budget/UnbudgetedSpendBanner';
 import { startOfMonth, endOfMonth, format, subMonths, addMonths, isSameMonth, isAfter, startOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -20,7 +21,7 @@ const Budget = () => {
   const navigate = useNavigate();
   const { transactions, isLoading: transactionsLoading } = useTransactions();
   const { categories, isLoading: categoriesLoading, upsertBudget } = useCategories(transactions, 'monthly');
-  const { budgets: budgetsArray, isLoading: budgetsLoading } = useBudgets('monthly');
+  const { budgets: budgetsArray, isLoading: budgetsLoading, deleteBudget } = useBudgets('monthly');
   const { initializeWithTransactions, includeRent } = useTimeFrame();
 
   // Month navigation state — defaults to current month
@@ -195,6 +196,15 @@ const Budget = () => {
           </div>
         )}
 
+        {/* Unbudgeted Spend Banner */}
+        <UnbudgetedSpendBanner
+          transactions={transactions}
+          budgets={budgets}
+          monthStart={monthStart}
+          monthEnd={monthEnd}
+          includeRent={includeRent}
+        />
+
         {/* Category List */}
         <div className={totalBudgeted === 0 ? 'mt-6' : ''}>
           <CategorySpendList
@@ -202,6 +212,7 @@ const Budget = () => {
             transactions={transactions}
             budgets={budgets}
             onUpdateBudget={upsertBudget}
+            onDeleteBudget={deleteBudget}
             monthStart={monthStart}
             monthEnd={monthEnd}
           />
