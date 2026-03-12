@@ -196,6 +196,15 @@ const Budget = () => {
           </div>
         )}
 
+        {/* Unbudgeted Spend Banner */}
+        <UnbudgetedSpendBanner
+          transactions={transactions}
+          budgets={budgets}
+          monthStart={monthStart}
+          monthEnd={monthEnd}
+          includeRent={includeRent}
+        />
+
         {/* Category List */}
         <div className={totalBudgeted === 0 ? 'mt-6' : ''}>
           <CategorySpendList
@@ -203,6 +212,7 @@ const Budget = () => {
             transactions={transactions}
             budgets={budgets}
             onUpdateBudget={upsertBudget}
+            onDeleteBudget={deleteBudget}
             monthStart={monthStart}
             monthEnd={monthEnd}
           />
