@@ -12,6 +12,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Loader2, ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
 import { CategorySpendList } from '@/components/budget/CategorySpendList';
+import { UnbudgetedSpendBanner } from '@/components/budget/UnbudgetedSpendBanner';
 import { startOfMonth, endOfMonth, format, subMonths, addMonths, isSameMonth, isAfter, startOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 
