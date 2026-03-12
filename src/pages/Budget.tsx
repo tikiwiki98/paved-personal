@@ -21,7 +21,7 @@ const Budget = () => {
   const navigate = useNavigate();
   const { transactions, isLoading: transactionsLoading } = useTransactions();
   const { categories, isLoading: categoriesLoading, upsertBudget } = useCategories(transactions, 'monthly');
-  const { budgets: budgetsArray, isLoading: budgetsLoading } = useBudgets('monthly');
+  const { budgets: budgetsArray, isLoading: budgetsLoading, deleteBudget } = useBudgets('monthly');
   const { initializeWithTransactions, includeRent } = useTimeFrame();
 
   // Month navigation state — defaults to current month
