@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Transaction, Category } from '@/types/budget';
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { EditTransactionModal } from '@/components/EditTransactionModal';
+import { ExportTransactionsButton } from '@/components/ExportTransactionsButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
@@ -154,6 +155,9 @@ const Transactions = () => {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <h1 className="text-xl font-bold text-foreground">All Transactions</h1>
+            <div className="ml-auto">
+              <ExportTransactionsButton />
+            </div>
           </div>
         </div>
       </header>
